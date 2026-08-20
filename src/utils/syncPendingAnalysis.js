@@ -1,4 +1,4 @@
-import initImageQueue from "../queues/imageQueue.js"
+import startImageQueue from "../queues/imageQueue.js"
 import storageService from "./storage/storageService.js"
 import { analysisService } from "../services/index.js"
 
@@ -28,7 +28,7 @@ async function retryPush() {
                 // console.log(reconstructedJob)
 
                 // tenta enfileirar novamente
-                const imageQueue = initImageQueue()
+                const imageQueue = startImageQueue()
 
                 await imageQueue.add('analysis-job', reconstructedJob, {
                     attempts: 3,

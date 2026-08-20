@@ -1,6 +1,6 @@
 // import Analise from '../models/Analise.js'
 import AppError from '../utils/appError.js'
-import initImageQueue from '../queues/imageQueue.js'
+import startImageQueue from '../queues/imageQueue.js'
 // import Classificacao from '../models/Classificacao.js'
 // import Imagem from '../models/Imagem.js'
 import { Analise, Imagem, Classificacao } from '../models/index.js'
@@ -55,7 +55,7 @@ class AnalysisService {
     // dispara fila
     async push(job) {
         // instancia nova fila por demanda, e não junto do servidor
-        const imageQueue = initImageQueue()
+        const imageQueue = startImageQueue()
 
         await imageQueue.add('analysis-job', job, {
             attempts: 3,
