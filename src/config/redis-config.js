@@ -1,29 +1,29 @@
 import IORedis from 'ioredis'
-import {getRedisState, setRedisState} from './redisState.js'
+import { getRedisState, setRedisState } from './redisState.js'
 import retryPush from '../utils/syncPendingAnalysis.js'
+import { startAllWorkers, stopAllWorkers } from '../workers/workerManager.js'
 
-// Factory de conexões com Redis
+let mainClient = null
+
+if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
+    console.log('>> [IORedis] Variáveis de ambiente do Redis não foram definidas')
+}
+
+// factory de clientes redis
 function createRedisConnection(customConfig = {}) {
-    if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
-        console.log('>> [IORedis] Variáveis de ambiente do Redis não foram definidas')
-    }
     const baseConfig = {
-        // captura variáveis de conexão
         host: process.env.REDIS_HOST || '127.0.0.1',
         port: process.env.REDIS_PORT || 6379,
         username: process.env.REDIS_USERNAME || undefined,
         password: process.env.REDIS_PASSWORD || undefined,
         db: Number(process.env.REDIS_DB || 0),
-        // estratégia de reconexão padrão
+        // estratégia de reconexão
         retryStrategy: (times) => {
-            // se falhar +3 vezes seguidas, assume que Redis está offline
-            if (times > 3) {
+            // 4 falhas seguidas, assume Redis offline
+            if (times === 4) {
                 console.error('\n>> [IORedis] Sua conexão com Redis está inacessível\n')
-                redis.disconnect() // fecha a conexão
-                return null // IORedis desiste do loop de reconexão
             }
-
-            const delay = Math.min(times * 5000, 15000) // loop de reconexão de 5s a 15s
+            const delay = Math.min(times * 5000, 15000) // loop 5-15s
             console.log(`>> [IORedis] Tentando reconectar ${connName}... Tentativa (${times})`)
             return delay
         }
@@ -38,18 +38,14 @@ function createRedisConnection(customConfig = {}) {
 
     // centraliza logs de eventos (serve para qualquer conexão criada na factory)
     redis.on('connect', () => {
-        setRedisState(true)
         console.log(`>> [IORedis] Uma nova conexão foi bem-sucedida: ${connName}`)
     })
 
     redis.on('end', () => {
-        setRedisState(false)
         console.log(`>> [IORedis] Uma conexão foi encerrada: ${connName}`)
     })
 
     redis.on('error', (err) => {
-        // atualiza estado do redis
-        setRedisState(false)
         // erros de rede e infraestrutura
         switch (err.code) {
             case 'ECONNREFUSED':
@@ -76,13 +72,40 @@ function createRedisConnection(customConfig = {}) {
     return redis
 }
 
-const mainClient = createRedisConnection({
-    connectionName: 'mainClient'
-})
+function startMainClient() {
+    if (mainClient) return mainClient
 
-// tenta processar jobs pendentes APENAS quando cliente principal conectar
-mainClient.on('connect', () => {
-    retryPush()
-})
+    // cliente redis principal
+    const client = createRedisConnection({
+        connectionName: 'mainClient',
+        masRetriesPerRequest: null,
+    })
 
-export { createRedisConnection }
+    // listeners exclusivos do mainClient
+    client.on('connect', async () => {
+        setRedisState(true)
+        // inicia workers
+        startAllWorkers()
+        // sincroniza análises pendentes
+        await retryPush()
+    })
+
+    client.on('end', async () => {
+        setRedisState(false)
+        // finaliza workers
+        await stopAllWorkers()
+    })
+
+    client.on('error', () => {
+        setRedisState(false)
+    })
+
+    mainClient = client
+    return mainClient
+}
+
+function getMainClient() {
+    return mainClient
+}
+
+export { createRedisConnection, startMainClient, getMainClient }

@@ -1,8 +1,7 @@
 import app from './app.js'
 import { initDatabase } from './src/database/initDB.js'
 import { initStorage } from './src/utils/storage/init.js'
-import initImageWorker from './src/workers/imageWorker.js'
-import initImageQueue from './src/queues/imageQueue.js'
+import { startMainClient } from './src/config/redis-config.js'
 
 const port = process.env.PORT || 4040
 
@@ -18,12 +17,12 @@ async function startServer() {
             console.log(`>> [Node] Aplicação iniciada ... Servidor rodando em http://localhost:${port}`)
         })
 
-        // inicia workers
+        // inicia Redis
         try {
-            console.log('>> [BullMQ] Acordando Workers...')
-            initImageWorker()
+            console.log('>> [Node] Iniciando cliente principal do Redis...')
+            startMainClient()
         } catch (error) {
-            console.error('>> [BullMQ] Erro ao iniciar serviços assíncronos: ', error)
+            console.error('>> [Node] Erro ao iniciar serviços assíncronos: ', error)
         }
 
         // tratamento de erros
