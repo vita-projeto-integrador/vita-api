@@ -9,18 +9,15 @@ let imageWorker = null
 let lastErrorCode = null
 let errorCount = 0
 
-function initImageWorker() {
-    // se já foi iniciado
-    if (imageWorker) {
-        console.log(`>> [BullMQ] ImageWorker rodando`)
-        return imageWorker
-    }
+function startImageWorker() {
+    // já iniciado
+    if (imageWorker) return imageWorker
     // se não, cria conexão Redis exclusiva
     const workerConnection = createRedisConnection({
         maxRetriesPerRequest: null,
         connectionName: 'ImageWorker'
     })
-    // instancia worker do bullmq passando a conexão criada
+    // cria instância
     imageWorker = new Worker('analysis-queue', async (job) => {
         try {
             // dispara contador do worker
@@ -134,6 +131,7 @@ function initImageWorker() {
         }
     }, { connection: workerConnection })
 
+    // listeners
     // job finalizou
     imageWorker.on('completed', async (job) => {
         try {
@@ -189,4 +187,11 @@ function initImageWorker() {
     return imageWorker
 }
 
-export default initImageWorker
+async function stopImageWorker(){
+    if(imageWorker){
+        await imageWorker.close()
+        imageWorker = null
+    }
+}
+
+export {startImageWorker, stopImageWorker}

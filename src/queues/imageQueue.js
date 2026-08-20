@@ -6,7 +6,7 @@ let imageQueue = null
 let lastErrorCode = null
 let errorCount = 0
 
-function initImageQueue() {
+function startImageQueue() {
     // se já foi iniciada
     if (imageQueue) {
         console.log(`>> [BullMQ] ImageQueue rodando`)
@@ -49,4 +49,4 @@ function initImageQueue() {
     return imageQueue
 }
 
-export default initImageQueue
+export default startImageQueue
