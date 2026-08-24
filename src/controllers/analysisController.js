@@ -23,7 +23,12 @@ class AnalysisController {
             // retorna análise 'pendente', dispara fila de processamento paralela
             const result = await analysisService.create(userId, files)
 
-            return new APIResponse(res, 'Análise iniciada', 202, result)
+            if(result.queued){
+                return new APIResponse(res, 'Análise iniciada', 202, result)
+            } else {
+                return new APIResponse(res, 'Análise salva! Aguardando serviço de processamento estabilizar', 202, result)
+            }
+            
         } catch (error) {
             next(error)
         }

@@ -12,9 +12,9 @@ export async function initStorage(){
         await Promise.all(
             folders.map(dir => mkdir(dir, { recursive : true }))
         )
-        console.log('>> Storage criada com sucesso')
+        console.log('>> [Storage] Storage criada com sucesso')
     } catch (error) {
-        console.error('>> Erro ao criar storage: ', error)
+        console.error('>> [Storage] Erro ao criar storage: ', error)
         process.exit(1)
     }
 }

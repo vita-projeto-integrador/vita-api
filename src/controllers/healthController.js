@@ -6,10 +6,17 @@ class HealthController {
     async healthCheck(req, res, next) {
         try {
             const result = await healthService.test()
+
             if (!result) {
-                throw new AppError('Serviço indisponível', 503)
+                throw new AppError('API indisponível', 503)
             }
-            return new APIResponse(res, 'Serviço disponível', 200, result)
+            else if(result.services.redis == 'degraded'){
+                return new APIResponse(res, 'API operacional, processamento de imagens temporariamente indisponível', 503, result)
+            }
+            else {
+                return new APIResponse(res, 'API disponível', 200, result)
+            }
+            
         } catch (error) {
             next(error)
         }

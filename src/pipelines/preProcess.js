@@ -3,7 +3,8 @@ import sharp from 'sharp'
 class PreProcess {
     // pré-processa fotos
     async preProcess(buffer) {
-        let pipeline = await sharp(buffer)
+        // cria instância do sharp
+        let pipeline = sharp(buffer)
 
         // redimensionamento
         pipeline.resize(224, 224, {
@@ -28,7 +29,7 @@ class PreProcess {
         })
 
         // retorna buffer tratado
-        const output = pipeline.toBuffer()
+        const output = await pipeline.toBuffer()
         return output
     }
 }

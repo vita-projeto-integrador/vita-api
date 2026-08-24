@@ -10,7 +10,7 @@ const corsOptions = {
             callback(null, true)
         } else {
             callback(new Error('Acesso negado pelo CORS'))
-            console.error('>> Acesso negado pelo CORS')
+            console.error('>> [CORS] Acesso negado pelo CORS')
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],

@@ -16,7 +16,7 @@ const Analise = connection.define('analises', {
         }
     },
     status: {
-        type: DataTypes.ENUM('finalizada', 'pendente', 'cancelada'),
+        type: DataTypes.ENUM('finalizada', 'pendente', 'em_fila', 'classificando', 'cancelada'),
         defaultValue: 'pendente',
         allowNull: false
     },

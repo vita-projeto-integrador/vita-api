@@ -5,7 +5,7 @@ export async function createDatabaseIfNotExists() {
     const { DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT } = process.env
 
     if (!DB_HOST || !DB_NAME || !DB_USER) {
-        console.log('Variáveis de ambiente do banco de dados não foram definidas')
+        console.log('>> [Sequelize] Variáveis de ambiente do banco de dados não foram definidas')
     }
 
     // objeto de conexão temporária usado apenas para criar o banco
@@ -20,9 +20,9 @@ export async function createDatabaseIfNotExists() {
 
     try {
         await sequelize.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`)
-        console.log('>> Banco de dados criado com sucesso.')
+        console.log('>> [Sequelize] Banco de dados criado com sucesso.')
     } catch (error) {
-        console.error('>> Erro ao criar o banco: ', error)
+        console.error('>> [Sequelize] Erro ao criar o banco: ', error)
         throw error
     } finally {
         await sequelize.close()

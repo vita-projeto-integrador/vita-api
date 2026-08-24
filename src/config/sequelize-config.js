@@ -3,7 +3,7 @@ import { Sequelize } from "sequelize"
 const {DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT} = process.env
 
 if (!DB_HOST || !DB_NAME || !DB_USER){
-    console.log('Variáveis de ambiente do banco de dados não foram definidas')
+    console.log('>> [Sequelize] Variáveis de ambiente do banco de dados não foram definidas')
 }
 
 const connection = new Sequelize(

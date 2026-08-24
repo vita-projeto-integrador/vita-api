@@ -1,18 +1,24 @@
-import Analise from '../models/Analise.js'
+// import Analise from '../models/Analise.js'
 import AppError from '../utils/appError.js'
-import imageQueue from '../queues/imageQueue.js'
-import Classificacao from '../models/Classificacao.js'
-import Imagem from '../models/Imagem.js'
+import startImageQueue from '../queues/imageQueue.js'
+// import Classificacao from '../models/Classificacao.js'
+// import Imagem from '../models/Imagem.js'
+import { Analise, Imagem, Classificacao } from '../models/index.js'
+import { getRedisState } from '../config/redisState.js'
+import storageService from '../utils/storage/storageService.js'
 import { fn, col, literal } from 'sequelize'
 
 class AnalysisService {
-    // cadastra análise e dispara fila assíncrona de classificação
+    // cadastra análise 'pendente'
     async create(userId, files) {
-        // cadastra análise 'pendente'
         const analysis = await Analise.create({ id_usuario: userId })
 
-        // prepara dados do job
-        const jobData = {
+        // verifica estado do Redis
+        const isRedisAlive = getRedisState()
+        let queued = isRedisAlive
+
+        // monta job
+        const job = {
             analysisId: analysis.id,
             userId: userId,
             images: files.map(file => ({
@@ -22,9 +28,36 @@ class AnalysisService {
                 size: file.size
             }))
         }
+        // se Redis está online, dispara fila
+        if (isRedisAlive) {
+            this.push(job)
+        } else {
+            // se não, salva buffers temporariamente
+            const imagesCopy = await Promise.all(
+                files.map(async file => ({
+                    imagePath: await storageService.save(file.buffer, `${analysis.id}`, '.webp'),
+                    originalName: file.originalname,
+                    mimeType: file.mimetype,
+                    size: file.size
+                }))
+            )
+            // monta cópia do job
+            const payload = {
+                analysisId : job.analysisId,
+                userId : job.userId,
+                images: imagesCopy
+            }
+            // salva temporariamente
+            await storageService.savePayload(payload, `${analysis.id}`)
+        }
+        return { analysis, queued }
+    }
+    // dispara fila
+    async push(job) {
+        // instancia nova fila por demanda, e não junto do servidor
+        const imageQueue = startImageQueue()
 
-        // adiciona job à fila
-        await imageQueue.add('analysis-job', jobData, {
+        await imageQueue.add('analysis-job', job, {
             attempts: 3,
             backoff: {
                 type: 'exponential',
@@ -33,8 +66,6 @@ class AnalysisService {
             removeOnComplete: 50,
             removeOnFail: 20
         })
-
-        return analysis
     }
     // atualiza estado de progresso da análise
     async update(analysisId, data) {
@@ -149,6 +180,16 @@ class AnalysisService {
         }
 
         return analysisDetails
+    }
+    // consulta análises pendentes
+    async getPending() {
+        const pending = await Analise.findAll({
+            order: [['createdAt', 'DESC']],
+            where: {
+                status: 'pendente'
+            }
+        })
+        return pending
     }
 }
 
