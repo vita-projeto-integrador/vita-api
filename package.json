@@ -1,41 +1,23 @@
 {
-  "name": "ponskan-api",
-  "version": "1.0.0",
-  "description": "API do projeto integrador em Node.js + Express.js",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon -r dotenv/config server.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/guilhermexmada/ponskan-api.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "bugs": {
-    "url": "https://github.com/guilhermexmada/ponskan-api/issues"
-  },
-  "homepage": "https://github.com/guilhermexmada/ponskan-api#readme",
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "bullmq": "^5.76.5",
-    "dotenv": "^17.4.1",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.3.2",
-    "file-type": "^22.0.0",
-    "ioredis": "^5.10.1",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
-    "mysql2": "^3.20.0",
-    "nodemon": "^3.1.14",
-    "sequelize": "^6.37.8",
-    "sharp": "^0.34.5",
-    "url": "^0.11.4",
-    "uuid": "^13.0.0",
-    "validator": "^13.15.35"
-  }
+	"devDependencies": {
+		"@types/bcrypt": "^6.0.0",
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
+		"@types/jsonwebtoken": "^9.0.10",
+		"@types/multer": "^2.2.0",
+		"@types/node": "^26.3.0",
+		"@types/validator": "^13.15.10",
+		"tsx": "^4.23.12",
+		"typescript": "^7.0.2"
+	},
+	"scripts": {
+		"dev": "tsx watch --env-file=.env src/server.ts",
+		"build": "tsc",
+		"start": "node --env-file=.env dist/server.js"
+	},
+	"dependencies": {
+		"express": "^5.2.1",
+		"uuid": "^14.0.2"
+	},
+	"type": "module"
 }
