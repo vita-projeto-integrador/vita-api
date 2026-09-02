@@ -1,10 +1,13 @@
 import app from './app.js'
 import { Server } from 'node:http'
+import { initDatabase } from './database/init-database.js'
 
 const PORT: number = Number(process.env.PORT) || 4040
 
 async function startServer(): Promise<void> {
     try {
+        // banco de dados
+        await initDatabase()
         // start do servidor node
         const server: Server = app.listen(PORT, () => {
             console.log(`>> [Node] Servidor rodando em http://localhost:${PORT}`)
