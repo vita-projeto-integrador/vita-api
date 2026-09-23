@@ -1,6 +1,9 @@
+const URL_WEB = process.env.URL_WEB
+const URL_MOBILE = process.env.URL_MOBILE
+
 // origens permitidas para requisições
 const allowedOrigins = [
-    'http://localhost:3000'
+    URL_WEB
 ]
 
 const corsOptions = {
