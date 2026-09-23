@@ -1,0 +1,5 @@
+  # força LF nos arquivos abaixo, independente do seu editor
+  *.env*        text eol=lf
+  Dockerfile    text eol=lf
+  *.yml         text eol=lf
+  *.sh          text eol=lf

@@ -4,8 +4,21 @@
   "description": "API do projeto integrador em Node.js + Express.js",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon -r dotenv/config server.js"
+    "dev": "npx nodemon -r dotenv/config server.js",
+    "start": "npx node -r dotenv/config server.js",
+    "docker:up": "docker compose up -d",
+    "docker:up:build": "docker compose up -d --build",
+    "docker:infra": "docker compose up -d mysql redis",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v",
+    "docker:restart": "docker compose restart api",
+    "docker:rebuild": "docker compose up -d --build --renew-anon-volumes api",
+    "docker:ps": "docker compose ps",
+    "docker:logs": "docker compose logs -f api",
+    "docker:logs:all": "docker compose logs -f",
+    "docker:sh": "docker compose exec api sh",
+    "docker:mysql": "docker compose exec mysql mysql -uroot -p",
+    "docker:redis": "docker compose exec redis redis-cli"
   },
   "repository": {
     "type": "git",

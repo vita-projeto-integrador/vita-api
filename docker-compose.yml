@@ -1,0 +1,93 @@
+# Orquestração do ambiente de desenvolvimento do VITA
+# Obs.: a chave "version:" é obsoleta na Compose Specification e foi omitida de propósito.
+
+name: vita
+
+services:
+
+  # ------------------------------------------------------------------
+  # API Node/Express
+  # ------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      target: development          # estágio do Dockerfile (development | production)
+    init: true                     # PID 1 = tini: repassa sinais (SIGTERM) e recolhe processos zumbis
+    env_file:
+      - .env                       # variáveis da aplicação (JWT, NODE_ENV, etc.)
+    environment:
+      # Sobrescrevem o .env (environment > env_file).
+      # Dentro da rede do Compose, os hosts são os NOMES DOS SERVIÇOS, não "localhost".
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root                # ver observação no serviço mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 8080
+    ports:
+      - "${API_HOST_PORT:-8080}:8080"
+    volumes:
+      - ./:/usr/src/app            # bind mount: código do host refletido no container (hot reload)
+      - /usr/src/app/node_modules  # volume anônimo: impede que o node_modules do host (Windows) sobrescreva o do container (Linux)
+    depends_on:
+      mysql:
+        condition: service_healthy # initDatabase() encerra o processo se o MySQL não responder
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # MySQL
+  # ------------------------------------------------------------------
+  mysql:
+    image: mysql:8.4               # 8.4 = linha LTS atual (8.0 já saiu de suporte)
+    environment:
+      # A API se conecta como root porque é ela quem executa CREATE DATABASE.
+      # MYSQL_DATABASE NÃO é definido de propósito: se o banco já existir,
+      # initDatabase() não recebe o erro 1049 e syncTables() nunca roda.
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env (a imagem do MySQL exige senha de root)}
+    ports:
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"   # 3307 no host evita conflito com Laragon/XAMPP
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # -h 127.0.0.1 força TCP: durante a inicialização o servidor temporário
+      # roda sem rede, então o check só passa quando o MySQL está realmente pronto.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Redis (backend do BullMQ)
+  # ------------------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"                      # persistência AOF: jobs sobrevivem a reinícios
+      - --maxmemory-policy
+      - noeviction                 # exigido pelo BullMQ: Redis nunca descarta chaves de jobs
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"   # 6380 no host evita conflito com o Redis do WSL
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:

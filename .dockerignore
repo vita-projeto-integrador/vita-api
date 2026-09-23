@@ -1,0 +1,15 @@
+# Nunca enviar ao contexto de build
+node_modules
+npm-debug.log*
+.env
+.git
+.gitignore
+
+# Dados de runtime (imagens do storage)
+storage
+
+# Documentação e arquivos do Docker
+*.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
