@@ -1,9 +1,7 @@
-import { ApiResponse } from "../types/http.js"
+import { ApiResponse } from "../types/http.types.js"
 import { Response } from 'express'
-/**
-    Classe de resposta HTTP bem-sucedida
-    @description Aplica o contrato HTTP ApiResponse e retorna respostas formatadas
-*/
+
+// classe HTTP para respostas bem-sucedidas
 export class AppResponse<T = unknown> implements ApiResponse<T> {
     public readonly success: boolean
     public readonly statusCode: number
@@ -17,17 +15,10 @@ export class AppResponse<T = unknown> implements ApiResponse<T> {
         this.data = data
     }
 
-    /**
-     * Método de resposta HTTP
-     * @description retorna uma resposta HTTP formatada
-     * @param {Response} res objeto de resposta
-     * @param {number} statusCode código de status HTTP 
-     * @param message mensagem que acompanha a resposta
-     * @param data payload de dados de quaisquer tipos
-     */
-    public static send<T>(res: Response, statusCode: number, message: string, data?: T): Response {
-        // instancia classe
-        const response = new AppResponse(statusCode, message, data)
+    // método para enviar response de sucesso
+    public static send<T>(res: Response, status: number, message: string, data?: T): Response {
+        // instancia classe - usa desestruturação p/ não imprimir statusCode
+        const { statusCode, ...response } = new AppResponse(status, message, data)
         // retorna response
         return res.status(statusCode).json(response)
     }

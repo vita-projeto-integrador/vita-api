@@ -24,7 +24,7 @@ export const errorHandler: ErrorRequestHandler = (
         return
     }
     // bugs
-    console.error(`>> [Express Bug]: ${err.message}`)
+    console.error(`>> [Bug]: ${err.message}`)
     res.status(500).json({
         success: false,
         message: 'Erro interno do servidor'

@@ -1,5 +1,6 @@
-import { Sequelize } from 'sequelize'
+import { Sequelize, ConnectionError, DatabaseError } from 'sequelize'
 import connection from '../config/sequelize-config.js'
+import { getDbErrorMessage, getMysqlErrorCode } from '../errors/map-db-error.js'
 
 async function createDatabaseIfNotExists(): Promise<void> {
     const dbName = process.env.DB_NAME as string
@@ -26,29 +27,17 @@ async function createDatabaseIfNotExists(): Promise<void> {
     }
 }
 
-// async function syncTables(): Promise<void>{
-//     try {
-//     } catch (error) {
-//     }
-// }
-
 async function initDatabase(): Promise<void> {
     try {
         await connection.authenticate()
-        console.log(`>> [Sequelize] Banco de dados conectado com sucesso`)
-    } catch (error: any) {
-        // se o banco não foi encontrado
-        if(error.original && error.original.errno === 1049){
-            console.log(`>> [Sequelize] Banco de dados não encontrado`)
-            await createDatabaseIfNotExists()
-            // await syncTables(){}
-            await connection.authenticate()
-            console.log(`>> [Sequelize] Banco de dados conectado com sucesso`)
-        } else {
-            console.error(`>> [Sequelize] Erro fatal ao iniciar o banco: ${error.message}`)
-            process.exit(1)
-        }
+    } catch (error: unknown) {
+        // se erro é banco inexistente, recria; se não, lança erro
+        if (getMysqlErrorCode(error) !== 'ER_BAD_DB_ERROR') throw error
+        console.warn(`[MySQL] ${getDbErrorMessage(error)}. Criando banco...`)
+        await createDatabaseIfNotExists()
+        await connection.authenticate()
     }
+    console.log(`>> [Sequelize] Banco de dados conectado com sucesso`)
 }
 
 export { initDatabase }

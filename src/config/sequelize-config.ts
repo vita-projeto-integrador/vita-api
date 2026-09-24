@@ -8,6 +8,7 @@ if (!DB_NAME || !DB_USER || !DB_HOST) {
     console.log('>> [Sequelize] Variáveis de ambiente do banco de dados não foram definidas')
 }
 
+// variáveis de conexão
 const dbName = DB_NAME as string
 const dbUser = DB_USER as string
 const dbPassword = DB_PASSWORD || ''
@@ -17,6 +18,7 @@ const dbPort = parseInt(DB_PORT as string) || 3306
 const isSSL = DB_SSL === 'true'
 const nodeEnv = (NODE_ENV as Environment) || 'development'
 
+// configura conexão
 const sequelizeOptions: Options = {
     host: dbHost,
     port: dbPort,
@@ -38,6 +40,7 @@ const sequelizeOptions: Options = {
     } : {}
 }
 
+// instancia cliente
 const connection = new Sequelize(
     // parâmetros obrigatórios
     dbName,
