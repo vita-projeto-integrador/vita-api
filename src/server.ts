@@ -1,6 +1,7 @@
 import app from './app.js'
 import { Server } from 'node:http'
 import { initDatabase } from './database/init-database.js'
+import { startMainClient } from './config/redis-config.js'
 
 const PORT: number = Number(process.env.PORT) || 4040
 
@@ -8,6 +9,13 @@ async function startServer(): Promise<void> {
     try {
         // banco de dados
         await initDatabase()
+        // redis
+        try {
+            await startMainClient()
+        } catch (error) {
+            
+        }
+
         // start do servidor node
         const server: Server = app.listen(PORT, () => {
             console.log(`>> [Node] Servidor rodando em http://localhost:${PORT}`)

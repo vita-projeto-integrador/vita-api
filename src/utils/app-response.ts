@@ -1,4 +1,4 @@
-import { ApiResponse } from "../types/http.js"
+import { ApiResponse } from "../types/http.types.js"
 import { Response } from 'express'
 /**
     Classe de resposta HTTP bem-sucedida
