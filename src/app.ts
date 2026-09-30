@@ -1,6 +1,6 @@
 import express, { Application, Request, Response } from 'express'
 import { appRoutes } from './routes/index.js'
-import { errorHandler } from './middlewares/error-handler.js'
+import { errorHandler } from './middlewares/error.middleware.js'
 import path from 'node:path'
 
 // instancia do express

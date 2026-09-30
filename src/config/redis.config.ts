@@ -6,7 +6,7 @@ import { customConfigInterface } from '../types/redis.types.js'
 const { REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWORD, REDIS_DB } = process.env
 
 if (!REDIS_HOST || !REDIS_PORT) {
-    console.log('>> [IORedis] Variáveis de ambiente do Redis não foram definidas')
+    throw new Error('>> [IORedis] Variáveis de ambiente do Redis não foram definidas')
 }
 
 // variáveis de conexão

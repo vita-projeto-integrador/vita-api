@@ -1,0 +1,48 @@
+# Ambiente local de banco para desenvolvimento do VITA.
+# As variáveis ${...} são lidas automaticamente do .env na mesma pasta.
+
+services:
+  postgres:
+    # imagem oficial do projeto PostGIS: Postgres + extensão já instalada.
+    # na primeira inicialização, cria o banco DB_NAME e roda CREATE EXTENSION postgis nele.
+    image: postgis/postgis:17-3.5
+    container_name: vita-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # exposto só na máquina local (não na rede)
+      - "127.0.0.1:${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # scripts de schema disponíveis no container (somente leitura), aplicados manualmente via psql.
+      # NÃO montar uma pasta sobre /docker-entrypoint-initdb.d: isso esconde o script
+      # da imagem que instala o PostGIS.
+      - ./database:/database:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vita-pgadmin
+    restart: unless-stopped
+    environment:
+      # valores padrão usados se as variáveis não existirem no .env
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@vita.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  pgadmin_data:

@@ -1,12 +1,7 @@
-/**
- * Classe personalizada de erros
- * @param {string} message mensagem explicativa
- * @param {number} statusCode código de status HTTP
- * @param {boolean} isOperational erro operacional ou inesperado
- */
+// classe personalizada de erros
 class AppError extends Error {
     public readonly statusCode: number
-    public readonly isOperational: boolean
+    public readonly isOperational: boolean // false = inesperado
 
     constructor(statusCode = 400, message: string, isOperational = true) {
         super(message) // chama construtor da classe error

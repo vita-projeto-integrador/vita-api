@@ -1,6 +1,5 @@
-
 import { Redis } from 'ioredis'
-import { createRedisConnection } from '../config/redis-config.js'
+import { createRedisConnection } from '../config/redis.config.js'
 import { setRedisState } from '../utils/redis-state.js'
 
 let mainClient: Redis | null = null

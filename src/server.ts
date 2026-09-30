@@ -2,7 +2,7 @@ import app from './app.js'
 import { Server } from 'node:http'
 import { initDatabase } from './database/init-database.js'
 import { startMainClient } from './database/init-redis.js'
-import { getDbErrorMessage } from './errors/map-db-error.js'
+import { getDbErrorMessage } from './errors/db-error.js'
 
 const PORT: number = Number(process.env.PORT) || 4040
 
@@ -11,7 +11,7 @@ async function startServer(): Promise<void> {
     try {
         await initDatabase()
     } catch (error) {
-        console.error(`>> [Boot] Falha ao conectar no MySQL: ${getDbErrorMessage(error)}`)
+        console.error(`>> [Boot] Falha ao conectar banco de dados: ${getDbErrorMessage(error)}`)
         process.exit(1)
     }
     // start redis

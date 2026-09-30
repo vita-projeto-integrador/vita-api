@@ -1,7 +1,7 @@
-import connection from "../config/sequelize-config.js"
+import connection from "../config/sequelize.config.js"
 import { getMainClient } from "../database/init-redis.js"
 import { withTimeout } from "../utils/with-timeout.js"
-import { getDbErrorMessage } from "../errors/map-db-error.js"
+import { getDbErrorMessage } from "../errors/db-error.js"
 
 class HealthService {
     public async checkDatabase(): Promise<boolean> {
@@ -9,7 +9,7 @@ class HealthService {
             await withTimeout(connection.authenticate(), 2000)
             return true
         } catch (error) {
-            console.error(`>> [MySQL] ${getDbErrorMessage(error)}`)
+            console.error(`>> [Postgres] ${getDbErrorMessage(error)}`)
             return false
         }
     }
