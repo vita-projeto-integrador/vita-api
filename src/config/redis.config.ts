@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis'
 import RedisError from '../errors/redis-error.js'
-import { getRedisState, setRedisState } from '../utils/redis-state.js'
+// import { getRedisState, setRedisState } from '../utils/redis-state.js'
 import { customConfigInterface } from '../types/redis.types.js'
 
 const { REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWORD, REDIS_DB } = process.env

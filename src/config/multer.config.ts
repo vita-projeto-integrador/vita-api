@@ -1,18 +1,14 @@
-import { ImageUploadPolicy } from "../types/multer.types.js";
+import multer, { Options } from 'multer'
+import { MB, KB } from '../utils/units.js'
+import type { MimeTypes } from '../types/multer.types.js'
+import { Request } from 'express'
 
-// constantes para tamanhos de arquivos
-const KB = 1024
-const MB = 1024 * KB
-
-// cria política para Análises
-const analysisImagePolicy = {
-    id: 'analysis-policy',
-    field: 'images',
-    minFiles: 1,
-    maxFiles: 4,
-    maxFileBytes: 5 * MB,
-    kind: 'image',
-    formats: ['jpeg', 'png', 'webp'],
-    maxPixels: 50_000_000,
-    minShortSide: 512
-} as const satisfies ImageUploadPolicy
+function createMulterPolicy(allowedMimeTypes: MimeTypes[], limits: Options['limits']) {
+    const storage: Options['storage'] = multer.memoryStorage()
+    const mimeList = allowedMimeTypes.map((type) => type.mime)
+    const fileFilter: Options['fileFilter'] = (_req, file, cb) => {
+        // validação barata do mimetype declarado pelo cliente
+        if (mimeList.includes(file.mimetype.toLocaleLowerCase())) cb(null, true)
+        else cb(new Error('INVALID_MIME_TYPE'))
+    }
+}
