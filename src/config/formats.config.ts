@@ -1,12 +1,12 @@
-import type { MimeTypesList } from "../types/multer.types.js"
+import { MimeType } from "../types/multer.types.js"
 
-const allowedImageFormats: MimeTypesList = {
+export const allowedImageFormats = {
     jpeg: { mime: 'image/jpeg', ext: 'jpg', label: 'JPEG' },
-    png: { mime: 'image/png', ext: 'png' },
-    webp: { mime: 'image/webp', ext: 'webp' },
-}
+    png: { mime: 'image/png', ext: 'png', label: 'PNG' },
+    webp: { mime: 'image/webp', ext: 'webp', label: 'WEBP' },
+} as const satisfies Record<string, MimeType>
 
-const allowedDocumentFormats = {
+export const allowedDocumentFormats = {
     pdf: { mime: 'application/pdf', ext: 'pdf' },
     doc: { mime: 'application/msword', ext: 'doc' },
     docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx' },
@@ -15,6 +15,3 @@ const allowedDocumentFormats = {
     txt: { mime: 'text/plain', ext: 'txt' },
     csv: { mime: 'text/csv', ext: 'csv' }
 }
-
-export type imageFormats = keyof typeof allowedImageFormats
-export type documentFormats = keyof typeof allowedDocumentFormats

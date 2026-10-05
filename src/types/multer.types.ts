@@ -1,51 +1,20 @@
-import { imageFormats } from "../config/formats.config.js"
+import { allowedImageFormats, allowedDocumentFormats } from "../config/formats.config.js"
+import { Options } from 'multer'
 
-export interface MimeTypes {
+export interface MimeType {
     mime: string,
     ext: string,
     label: string
 }
 
-export interface MimeTypesList {
-    [name: string]: MimeTypes
-}
+export type MimeTypesList = Record<string, MimeType>
 
-// tipo base para políticas
-export interface BaseUploadPolicy {
-    readonly id: string,
-    readonly field: string,
-    readonly minFiles: number,
-    readonly maxFiles: number,
-    readonly maxFileBytes: number,
-    readonly text: {
-        readonly maxFields: number
-        readonly maxFieldsBytes: number
-    }
-}
+export type ImageFormat = keyof typeof allowedImageFormats
+export type DocumentFormats = keyof typeof allowedDocumentFormats
 
-// tipo para políticas de imagens
-export interface ImagePolicy extends BaseUploadPolicy {
-    readonly kind: 'image'
-    readonly formats: readonly imageFormats[]
-    readonly image: {
-        readonly maxPixels: number
-        readonly minShortSide: number
-    }
-}
-
-// expõe tipo mais abrangente para referência
-export type UploadPolicy = ImagePolicy
-
-// arquivos recebidos na requisição
-export interface IncomingFile {
-    readonly buffer: Buffer,
-    readonly clientFileName: string, // não confiável
-    readonly declaredMime: string, // não confiável
-    readonly size: number
-}
-
-export interface MulterErrorJSON {
-    success: boolean,
-    message: string,
-
+export interface UploadPolicyConfig {
+    name: string,
+    field: string,
+    formats: ImageFormat[],
+    limits: Options['limits'],
 }

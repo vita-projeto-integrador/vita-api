@@ -1,55 +1,35 @@
-import { Request, Response, NextFunction, RequestHandler } from "express"
-import multer, { Options } from "multer"
-import { MulterError } from "multer"
-import { UploadPolicy } from "../types/multer.types.js"
-import { imageFormats, resolveAcceptedFormats } from "../config/formats.config.js"
+import type { Request, Response, NextFunction, RequestHandler } from 'express'
+import multer, { type Options } from 'multer'
+import type { UploadPolicyConfig } from '../types/multer.types.js'
+import { allowedImageFormats } from '../config/formats.config.js'
+import AppError from '../errors/app-error.js'
+import { mapMulterError } from '../errors/multer-error.js'
 
-// factory de handlers 
-export const createUploadMiddleware = (policy: UploadPolicy): RequestHandler => {
-    // configura handler de acordo com a política
-    const handler = multer({
-        storage: multer.memoryStorage(),
-        limits: toMulterLimits(policy),
-        fileFilter: createFileFilter(policy)
-    }).array(policy.field, policy.maxFiles)
-    // retorna arquivo verificado ou erro
-    return async (req: Request, res: Response, next: NextFunction) => {
-        // verifica tipo de formulário
-        if (!req.is('multipart/form-data')) throw new Error('NOT_MULTIPART')
-        // executa handler
-        await runMulter(handler, req, res).catch((error: unknown) => {
-            throw error
+// factory de middlewares de upload
+export function createMulterPolicy(config: UploadPolicyConfig): RequestHandler {
+    const { formats, limits, field } = config
+    const acceptMimes: readonly string[] = formats.map((f) => allowedImageFormats[f].mime)
+    const maxFiles = limits?.files || 1
+    const storage: Options['storage'] = multer.memoryStorage()
+    const fileFilter: Options['fileFilter'] = (_req, file, cb) => {
+        // filtro barato de mimetype declarado pelo cliente
+        if (acceptMimes.includes(file.mimetype.toLowerCase())) cb(null, true)
+        else cb(new AppError(415, 'Formato de arquivo inválido'))
+    }
+    // cria handler
+    const upload = multer({
+        storage,
+        limits,
+        fileFilter
+    }).array(field, maxFiles)
+
+    return (req: Request, res: Response, next: NextFunction) => {
+        upload(req, res, (error?: unknown) => {
+            if (error) return next(mapMulterError(error))
+            if (!Array.isArray(req.files) || req.files.length === 0) {
+                return next(new AppError(400, 'Nenhum arquivo enviado no campo esperado'))
+            }
+            next()
         })
     }
-}
-
-// converte limites da política para limites do multer
-function toMulterLimits(policy: UploadPolicy): NonNullable<Options['limits']> {
-    return {
-        files: policy.maxFiles,
-        fileSize: policy.maxFileBytes,
-        fieldNameSize: 100,
-        parts: policy.maxFiles + policy.text.maxFields // bloqueia requisições c/ partes demais
-    }
-}
-
-// cria filtro do multer com base nos tipos válidos da política
-function createFileFilter(policy: UploadPolicy): NonNullable<Options['fileFilter']> {
-    // rejeição barata baseada no mimetype declarado pelo cliente
-    const acceptedMimes = resolveAcceptedFormats(policy).map((format) => format.mime)
-    // retorno típico do multer
-    return (_req, file, cb) => {
-        if (acceptedMimes.includes(file.mimetype.toLocaleLowerCase())) {
-            cb(null, true)
-        } else {
-            cb(new Error('INVALID_MIME_TYPE'))
-        }
-    }
-}
-
-// passa arquivos da requisição pelo handler criado
-function runMulter(handler: RequestHandler, req: Request, res: Response): Promise<void> {
-    return new Promise((resolve, reject) => {
-        void handler(req, res, (err?: unknown) => (err ? reject(err) : resolve()))
-    })
 }
