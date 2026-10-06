@@ -6,9 +6,10 @@ interface MulterErrorInfo {
     status: number
 }
 
+// códigos de erro do multer
 const MULTER_ERRORS = {
     LIMIT_PART_COUNT: {
-        message: 'Quantidade de partes excedida',
+        message: 'Quantidade máxima de partes excedida',
         status: 400
     },
     LIMIT_FILE_SIZE: {
@@ -16,7 +17,7 @@ const MULTER_ERRORS = {
         status: 413
     },
     LIMIT_FILE_COUNT: {
-        message: 'Quantidade de arquivos excedida',
+        message: 'Quantidade máxima de arquivos excedida',
         status: 400
     },
     LIMIT_FIELD_KEY: {
@@ -28,7 +29,7 @@ const MULTER_ERRORS = {
         status: 413
     },
     LIMIT_FIELD_COUNT: {
-        message: 'Quantidade de campos excedida',
+        message: 'Quantidade máxima de campos excedida',
         status: 400
     },
     LIMIT_UNEXPECTED_FILE: {
@@ -41,8 +42,10 @@ const MULTER_ERRORS = {
     }
 } as const satisfies Record<multer.ErrorCode, MulterErrorInfo>
 
+// retorno default
 const FALLBACK = { message: 'Upload inválido', status: 400 }
 
+// traduz erro do multer em AppError
 export function mapMulterError(error: unknown): AppError {
     if (error instanceof AppError) return error
 

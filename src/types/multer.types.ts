@@ -1,5 +1,5 @@
-import { allowedImageFormats, allowedDocumentFormats } from "../config/formats.config.js"
-import { Options } from 'multer'
+import type { Options } from 'multer'
+import type { allowedImageFormats, allowedDocumentFormats } from "../config/formats.config.js"
 
 export interface MimeType {
     mime: string,

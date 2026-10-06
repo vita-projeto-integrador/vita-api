@@ -3,7 +3,7 @@ import { MB } from '../utils/units.js'
 
 // políticas
 const analysisPolicy: UploadPolicyConfig = {
-    name: 'imagePolicy',
+    name: 'analysisPolicy',
     field: 'images',
     formats: ['png', 'webp', 'jpeg'],
     limits: {

@@ -6,7 +6,7 @@ import AppError from '../errors/app-error.js'
 import { mapMulterError } from '../errors/multer-error.js'
 
 // factory de middlewares de upload
-export function createMulterPolicy(config: UploadPolicyConfig): RequestHandler {
+export function createMulterHandler(config: UploadPolicyConfig): RequestHandler {
     const { formats, limits, field } = config
     const acceptMimes: readonly string[] = formats.map((f) => allowedImageFormats[f].mime)
     const maxFiles = limits?.files || 1
@@ -23,11 +23,14 @@ export function createMulterPolicy(config: UploadPolicyConfig): RequestHandler {
         fileFilter
     }).array(field, maxFiles)
 
+    // executa handler
     return (req: Request, res: Response, next: NextFunction) => {
         upload(req, res, (error?: unknown) => {
+            // trata erros
             if (error) return next(mapMulterError(error))
+            // valida req.files
             if (!Array.isArray(req.files) || req.files.length === 0) {
-                return next(new AppError(400, 'Nenhum arquivo enviado no campo esperado'))
+                return next(new AppError(400, `Nenhum arquivo enviado no campo ${field}`))
             }
             next()
         })
