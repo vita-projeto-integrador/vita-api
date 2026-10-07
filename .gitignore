@@ -4,3 +4,5 @@ node_modules
 dist/
 # variáveis de ambiente
 .env
+# armazenamento de arquivos
+storage/
