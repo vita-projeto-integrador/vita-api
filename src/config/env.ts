@@ -4,8 +4,12 @@ import { deepFreeze } from '../utils/deep-freeze.js';
 import { MB, HOUR } from '../utils/units.js';
 import { emptyToUndefined } from '../utils/indefinite.js';
 
+// variáveis de ambiente originais
 const vars = process.env;
 
+/*
+    Schemas de validação
+*/
 const DatabaseEnvironmentSchema = z.object({
     DB_NAME: z.string().min(1),
     DB_USER: z.string().min(1),
@@ -50,7 +54,7 @@ const StorageEnvironmentSchema = z.object({
     STORAGE_PURGE_DELETED_AFTER_DAYS: z.coerce.number().int().positive().max(3650).optional(),
 })
 
-// transforma variáveis de ambiente vazias em undefined para zod tratar
+// helper - transforma variáveis vazias em undefined para zod tratar
 const normalizeEnv = (env: NodeJS.ProcessEnv) =>
     Object.fromEntries(
         Object.entries(env).map(([key, value]) => [
@@ -59,7 +63,7 @@ const normalizeEnv = (env: NodeJS.ProcessEnv) =>
         ]),
     )
 
-// agrega todas as validações
+// helper - agrega todas as validações zod 
 const RawEnvSchema = z.object({
     ...NodeEnvironmentSchema.shape,
     ...DatabaseEnvironmentSchema.shape,
@@ -69,7 +73,7 @@ const RawEnvSchema = z.object({
     ...StorageEnvironmentSchema.shape
 })
 
-// divide validações por tipo
+// helper - valida variáveis e classifica por tipo
 const EnvSchema = RawEnvSchema.transform(e => ({
     app: {
         port: e.PORT,
@@ -109,14 +113,13 @@ const EnvSchema = RawEnvSchema.transform(e => ({
     },
 }))
 
-// executa todas as validações agregando todos os erros
 const result = EnvSchema.safeParse(normalizeEnv(vars))
 
 if (!result.success) {
     throw new Error(`Variáveis de ambiente inválidas:\n${z.prettifyError(result.error)}`)
 }
 
-// congela (readonly) todos os campos do objeto final
+// helper - congela (readonly) todos os campos do objeto final
 export const env = deepFreeze(result.data)
 export type Env = typeof env
 

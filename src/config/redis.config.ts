@@ -2,29 +2,19 @@ import { Redis } from 'ioredis'
 import RedisError from '../errors/redis-error.js'
 // import { getRedisState, setRedisState } from '../utils/redis-state.js'
 import { customConfigInterface } from '../types/redis.types.js'
+import { env } from '../config/env.js'
 
-const { REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWORD, REDIS_DB } = process.env
-
-if (!REDIS_HOST || !REDIS_PORT) {
-    throw new Error('>> [IORedis] Variáveis de ambiente do Redis não foram definidas')
-}
-
-// variáveis de conexão
-const rdHost: string = REDIS_HOST || '127.0.0.1'
-const rdPort: number = Number(REDIS_PORT) || 6380
-const rdUser: string = REDIS_USERNAME || ''
-const rdPassword: string = REDIS_PASSWORD || ''
-const rdDatabase: number = Number(REDIS_DB) || 0
+const { redis } = env
 
 // factory de clientes redis
 function createRedisConnection(customConfig: customConfigInterface): Redis {
     // configs comuns
     const baseConfig = {
-        host: rdHost,
-        port: rdPort,
-        username: rdUser,
-        password: rdPassword,
-        db: rdDatabase,
+        host: redis.host,
+        port: redis.port,
+        username: redis.user,
+        password: redis.password,
+        db: redis.db,
         // reconexão
         retryStrategy: (times: number) => {
             console.log(`>> [IORedis] Tentando reconectar ... Tentativa ${times}`)
@@ -35,17 +25,17 @@ function createRedisConnection(customConfig: customConfigInterface): Redis {
     // mescla configs
     const finalConfig = { ...baseConfig, ...customConfig }
     // instancia conexão
-    const redis: Redis = new Redis(finalConfig)
+    const redisConn: Redis = new Redis(finalConfig)
     const connName: string = finalConfig.connectionName || 'Cliente Redis Geral'
 
     // listeners comuns
-    redis.on('connect', () => {
+    redisConn.on('connect', () => {
         console.log(`>> [IORedis] Nova conexão bem-sucedida: ${connName}`)
     })
-    redis.on('end', () => {
+    redisConn.on('end', () => {
         console.log(`>> [IORedis] Conexão encerrada: ${connName}`)
     })
-    redis.on('error', (err: RedisError) => {
+    redisConn.on('error', (err: RedisError) => {
         // erros de rede e infra
         switch (err.code) {
             case 'ECONNREFUSED':
@@ -69,7 +59,7 @@ function createRedisConnection(customConfig: customConfigInterface): Redis {
         }
     })
 
-    return redis
+    return redisConn
 }
 
 export { createRedisConnection }
