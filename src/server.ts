@@ -1,8 +1,8 @@
 import app from './app.js'
 import { Server } from 'node:http'
-import { initDatabase } from './database/init-database.js'
-import { startMainClient } from './database/init-redis.js'
-import { getDbErrorMessage } from './errors/db-error.js'
+import { initDatabase } from './shared/database/init-database.js'
+import { startMainClient } from './shared/database/init-redis.js'
+import { getDbErrorMessage } from './shared/errors/db-error.js'
 
 const PORT: number = Number(process.env.PORT) || 4040
 

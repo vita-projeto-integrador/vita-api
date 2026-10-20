@@ -1,5 +1,5 @@
 import { Sequelize, Options, Dialect } from 'sequelize'
-import { env } from '../config/env.js'
+import { env } from './env.js'
 
 type Environment = 'development' | 'production' | 'test'
 
