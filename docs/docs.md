@@ -1,4 +1,4 @@
-# Requisitos 
+# Requisitos
 
 ## Geral
 
@@ -6,16 +6,25 @@
 - Todos os repositórios de software devem ser dockerizados;
 - Todos os repositórios de software devem ter implementações de workflow de CI/CD usando Github Workflows, husky, eslint, entre outras ferramentas;
 - `vita-api` : Rest API deve usar o ambiente Node com o framework Express e a linguagem TypeScript;
-- A API deve seguir e expandir uma estrutura de pastas básica a partir de `src/`: `config/`, `modules/`, `middlewares/`, `routes/`, `utils/`;
-- A API deve validar as requisições com a biblioteca Zod;
-- A API deve aplicar o conceito de DTOs inferindo as validações Zod;
 - `vita-database` : banco de dados PostgreSQL com extensão PostGIS;
-- O repositório database deve usar TypeScript e ORM Sequelize;
 - A API também deve usar ORM Sequelize para interagir com o banco;
-- O repositório database define as `models` como fonte de verdade e as exporta para a API em forma de `package`;
-- O repositório database também carrega `migrations` e `scripts` para criar e alterar o banco de dados;
 - `vita-app-web` : front-end para web na linguagem TypeScript com framework Next e biblioteca React;
 - `vita-app-mobile` : front-end para mobile na linguagem TypeScript com framework Expo e biblioteca React-Native; 
+
+## API
+
+- A API deve seguir e expandir uma estrutura de pastas básica a partir de `src/`: `shared/`, `modules/`, `routes/`;
+- A API deve validar as requisições com a biblioteca Zod;
+- A API deve aplicar o conceito de DTOs inferindo as validações Zod;
+
+## Banco de dados
+
+- O repositório database deve usar TypeScript e ORM Sequelize;
+- O repositório database define as `models` como fonte de verdade e as exporta para a API em forma de `package`;
+- A API instala as `models` em forma de `package` disponibilizado pelo repositório `vita-database`;
+- O repositório database também carrega `migrations` e `scripts` para criar e alterar o banco de dados;
+- A responsabilidade da API sobre o banco é apenas de instanciar a conexão;
+- A conexão com o banco de dados é essencial e deve lançar erro fatal;
 - Nenhum registro é apagado do banco - a Rest API usa `paranoid` para aplicar soft delete;
 - A limpeza do banco (exclusão real dos registros) não precisa entrar no escopo do projeto;
 - `timeStamps` : `created_at`, `updated_at`, `deleted_at` devem existir em todas as tabelas;
@@ -35,12 +44,6 @@
 - `faculdade`: `string` de 3-150 caracteres, relacionado ao perfil `estudante`, opcional;
 - `curso` : `string`de 3-150 caracteres, relacionado ao perfil `estudante`, opcional;
 - `foto_perfil` : `string` de 0-2048 caracteres, contém URL/caminho da imagem, opcional;
-
-## Autenticação
-- Autenticação de usuários (`login`, `logout`) deve utilizar Json Web Token;
-- O payload do usuário logado (injetado no token JWT) deve carregar `id`, `nome` e `email`;
-- O middleware de autenticação deve checar se o usuário existe ou está ativo;
-- Quando o usuário é deslogado ou desativado, o token JWT atual deve ser invalidado;
 
 ## `analises`
 
@@ -84,3 +87,89 @@
 - `classe`: `float` indicando probabilidade de infecção ou de ser fruta saudável;
 - `confianca` : `float` indicando a confiança do modelo de rede neural na classificação;
 - `modelo_cnn` : `string` de 3-150 caracteres com o nome do modelo utilizado na classificação;
+
+## Autenticação
+- Autenticação de usuários (`login`, `logout`) deve utilizar Json Web Token;
+- O payload do usuário logado (injetado no token JWT) deve carregar `id`, `nome` e `email`;
+- O middleware de autenticação deve checar se o usuário existe ou está ativo;
+- Quando o usuário é deslogado ou desativado, o token JWT atual deve ser invalidado;
+
+## Upload de imagens
+
+- Uma análise pode incluir de **1-4 imagens**;
+- As imagens da análise podem ser obtidas de **2 origens**: captura através de câmera digital (ex.: celulares) OU do armazenamento interno do dispositivo (ex.: galeria);
+- Para upload, são aceitos apenas os formatos de imagem: *jpg, jpeg, png e webp*;
+- O tamanho máximo para upload de cada arquivo de imagem é de **5mb**;
+- O nome exato do campo que inclui as imagens na requisição HTTP deve ser `images`;
+- As mesmas regras de formato, tamanho e campo valem para imagens de perfil de usuário;
+- Imagens de upload devem ser salvas em `storage/uploads/`;
+
+## Tratamento de Erros
+
+- Todo erro na API deve ser capturado, logado, tratado e lançado (ou não);
+- `controllers` devem ser os responsáveis por capturar os erros de camadas superiores (`services`, etc);
+- `error.middleware` deve ser o último handler, responsável por tratar os erros de diferentes serviços na API;
+- `AppErrors` : classe de erros de negócio que não quebram a API, mas retornam respostas HTTP 400-500;
+- **Bugs** : erros não capturados em última instância pelo `error.middleware`, devolvem sempre `HTTP 500 Internal Server Error`;
+- **Erros fatais**: erros em serviços essenciais que quebram a API, devem ser lançados instantaneamente (ex.: boot, conexão com banco, etc);
+
+## HTTP
+- Segue abaixo o formato padrão do JSON para respostas HTTP da API:
+```
+{
+    "success": boolean,
+    "message": string,
+    "data": T
+}
+```
+- Segue abaixo o formato padrão do JSON para respostas HTTP paginadas:
+```
+data: {
+    "items": T[],
+    "total": number,
+    "page": number,
+    "limit": number
+    }
+``` 
+
+## Storage 
+
+- Atualmente o armazenamento de arquivos deve utilizar a técnica de **storage local** - diretório reservado dentro do repositório;
+- Atualmente o storage deve servir para imagens, posteriormente será expandido para arquivos (ex.: relatórios PDF);
+- O storage deve ser adaptado para permitir driver de armazenamento local e, posteriormente, de serviços em nuvem (ex.: R2, Supabase, Firebase, etc);
+- A estrutura do storage deve seguir `storage/` : `uploads/`, `processed/`, `temp/`;
+- `storage/uploads` armazena fotos para análise e para perfil do usuário;
+- `storage/processed` armazena imagens processadas durante/após análises;
+- `storage/temp` armazena arquivos para acesso rápido temporário;
+- Deve existir uma rotina de limpeza de `storage/temp`;
+- O storage deve ser manipulado através de uma interface com métodos mínimos `put`, `get`, `delete` e `getAccessUrl`;
+- O escopo atual deve contar com o caminho padrão para imagens de análises: `storage/uploads/userId/analysisId/`, `storage/processed/userId/analysisId/`;
+- O escopo atual deve contar com o caminho padrão para imagens de perfil: `storage/uploads/userId/profile/`;
+
+## Redis
+
+- Utiliza a biblioteca `ioredis`;
+- Atualmente utilizado para suportar e otimizar processamento assíncrono de imagens em conjunto com `BullMQ`;
+- Deve ser dockerizado com suas respectivas credenciais e estrutura;
+- Desconexão do Redis não deve quebrar a API - deve ser coberto por um plano para salvar análises no storage local, reenfileirando-as quando Redis reconectar;
+- Deve ser configurado com padrão `factory` para criar diferentes instâncias de conexão;
+- Estado de conexão do Redis deve ser gerenciado por um cliente principal `mainClient`;
+- `mainClient` deve usar `listeners` exclusivos que controlam as demais conexões (ex.: `queues` e `workers` do BullMQ);
+- Todas as conexões usam `retryStrategy` com loops de **5-15 segundos** para tentar reconectar-se ao serviço;
+
+## BullMQ
+
+- Utilizado para estruturar um fluxo assíncrono e veloz de processamento usando filas (`queues`), tarefas (`jobs`) e processadores (`workers`);
+- Cada `queue` e `worker` depende de uma conexão Redis para funcionar (`workers` duplicam a conexão recebida);
+- Conexões para agentes do BullMQ devem informar os parâmetros personalizados `maxRetriesPerRequest` e `connectionName`;
+- `queues` não precisam ser instanciadas com o boot da API, elas funcionam por demanda;
+- `workers` devem ser instanciados assim que possível, pois ficam "escutando" `jobs`;
+- Deve existir um arquivo **orquestrador de workers** para ativar as conexões assim que o cliente Redis principal `mainClient` for instanciado com sucesso e fechar conexões quando `mainClient` for desconectado;
+
+## Sharp
+
+- Antes de passar pela inferência classificador de modelo de rede neural, imagens de análises devem ser pré-processadas com a biblioteca `sharp`;
+- Os processamentos com `sharp` devem ser organizados em `src/shared/pipelines/`;
+- A pipeline de pré-processamento para análises deve simular **Data Augmentation** aplicando operações de redimensionamento e ajustes de ruído, brilho e saturação em cópias das imagens originais;
+- A saída da pipeline de pré-processamento deve ser um conjunto de imagens comprimidas em formato `.webp` e no padrão de cores `SRGB`;
+- As imagens devem ser manipuladas em formato de `buffer` durante o processamento das análises;
