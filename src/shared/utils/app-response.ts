@@ -1,25 +1,22 @@
-import { ApiResponse } from "../types/http.types.js"
-import { Response } from 'express'
+import type { Response } from 'express'
+import type { SuccessResponse } from '../types/http.types.js'
+
+// status de sucesso aceitos (204 não tem corpo, então não usa esta classe)
+type SuccessStatus = 200 | 201 | 202
 
 // classe HTTP para respostas bem-sucedidas
-export class AppResponse<T = unknown> implements ApiResponse<T> {
-    public readonly success: boolean
-    public readonly statusCode: number
+export class AppResponse<T = unknown> implements SuccessResponse<T> {
+    public readonly success = true
     public readonly message: string
     public readonly data?: T // recebe vários tipos de dados
 
-    constructor(statusCode: number, message: string, data?: T) {
-        this.success = statusCode >= 200 && statusCode < 300 // se estiver no intervalo, ganha true
-        this.statusCode = statusCode
+    constructor(message: string, data?: T) {
         this.message = message
         this.data = data
     }
 
-    // método para enviar response de sucesso
-    public static send<T>(res: Response, status: number, message: string, data?: T): Response {
-        // instancia classe - usa desestruturação p/ não imprimir statusCode
-        const { statusCode, ...response } = new AppResponse(status, message, data)
-        // retorna response
-        return res.status(statusCode).json(response)
+    // envia response de sucesso
+    public static send<T>(res: Response, statusCode: SuccessStatus, message: string, data?: T): Response {
+        return res.status(statusCode).json(new AppResponse(message, data))
     }
 }

@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import path from 'node:path';
 import { deepFreeze } from '../utils/deep-freeze.js';
-import { MB, HOUR } from '../utils/units.js';
+import { HOUR } from '../utils/units.js';
 import { emptyToUndefined } from '../utils/indefinite.js';
+import fs from 'node:fs'
 
 // variáveis de ambiente originais
 const vars = process.env;
@@ -10,6 +11,34 @@ const vars = process.env;
 /*
     Schemas de validação
 */
+
+// caminho do arquivo da CA; o env expõe o conteúdo já lido
+const sslCaSchema = z
+    .string()
+    .transform((value, ctx) => {
+        const caPath = path.resolve(value)
+        try {
+            const content = fs.readFileSync(caPath, 'utf8')
+            if (content.trim() === '') {
+                ctx.issues.push({
+                    code: 'custom',
+                    message: `Arquivo de CA vazio: ${caPath}`,
+                    input: value,
+                })
+                return z.NEVER
+            }
+            return content
+        } catch {
+            ctx.issues.push({
+                code: 'custom',
+                message: `Arquivo de CA não encontrado: ${caPath}`,
+                input: value,
+            })
+            return z.NEVER
+        }
+    })
+    .optional()
+
 const DatabaseEnvironmentSchema = z.object({
     DB_NAME: z.string().min(1),
     DB_USER: z.string().min(1),
@@ -18,7 +47,7 @@ const DatabaseEnvironmentSchema = z.object({
     DB_PORT: z.coerce.number().int().positive().max(65535).default(5432),
     DB_DIALECT: z.literal('postgres'),
     DB_SSL: z.stringbool().default(false),
-    DB_SSL_CA: z.string().optional(),
+    DB_SSL_CA: sslCaSchema,
 })
 
 const RedisEnvironmentSchema = z.object({
@@ -39,8 +68,15 @@ const JWTEnvironmentSchema = z.object({
     JWT_EXPIRES_IN: z.string().regex(/^\d+(s|m|h|d|w)$/, 'JWT_EXPIRES_IN inválido').default('1h'),
 })
 
+// normaliza origem HTTP(S)
+// ex.: "http://localhost:3000/" -> "http://localhost:3000"
+const originSchema = z
+    .url({ protocol: /^https?$/ })
+    .transform((value) => new URL(value).origin)
+
 const CORSEnvironmentSchema = z.object({
-    URL_WEB: z.url()
+    URL_WEB: originSchema,
+    URL_EXPO: originSchema.optional()
 })
 
 const StorageEnvironmentSchema = z.object({
@@ -48,10 +84,7 @@ const StorageEnvironmentSchema = z.object({
     STORAGE_ROOT: z.string().min(1).transform(
         (value) => path.resolve(value),
     ),
-    STORAGE_MAX_UPLOAD_MB: z.coerce.number().positive().max(15).default(10),
     STORAGE_TMP_TTL_HOURS: z.coerce.number().positive().max(72).default(24),
-    STORAGE_ORIGINAL_RETENTION_DAYS: z.coerce.number().int().positive().max(3650).optional(),
-    STORAGE_PURGE_DELETED_AFTER_DAYS: z.coerce.number().int().positive().max(3650).optional(),
 })
 
 // helper - transforma variáveis vazias em undefined para zod tratar
@@ -71,6 +104,14 @@ const RawEnvSchema = z.object({
     ...JWTEnvironmentSchema.shape,
     ...CORSEnvironmentSchema.shape,
     ...StorageEnvironmentSchema.shape
+}).superRefine((e, ctx) => {
+    if (e.DB_SSL_CA && !e.DB_SSL) {
+        ctx.addIssue({
+            code: 'custom',
+            path: ['DB_SSL_CA'],
+            message: 'DB_SSL_CA informado com DB_SSL=false: o certificado seria ignorado',
+        })
+    }
 })
 
 // helper - valida variáveis e classifica por tipo
@@ -101,15 +142,13 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         expiresIn: e.JWT_EXPIRES_IN
     },
     cors: {
-        webUrl: e.URL_WEB
+        webUrl: e.URL_WEB,
+        expoUrl: e.URL_EXPO
     },
     storage: {
         driver: e.STORAGE_DRIVER,
         root: e.STORAGE_ROOT,
-        maxUploadBytes: e.STORAGE_MAX_UPLOAD_MB * MB,
         tmpTtlMs: e.STORAGE_TMP_TTL_HOURS * HOUR,
-        originalRetentionDays: e.STORAGE_ORIGINAL_RETENTION_DAYS,
-        purgeDeletedAfterDays: e.STORAGE_PURGE_DELETED_AFTER_DAYS,
     },
 }))
 

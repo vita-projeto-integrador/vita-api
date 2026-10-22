@@ -1,19 +1,16 @@
 import express, { Application, Request, Response } from 'express'
+import cors from 'cors'
 import { appRoutes } from './routes/index.js'
 import { errorHandler } from './shared/middlewares/error.middleware.js'
-import path from 'node:path'
+import { notFoundHandler } from './shared/middlewares/not-found.middleware.js'
+import corsOptions from './shared/config/cors.config.js'
 
 // instancia do express
 const app: Application = express()
 
 // configs basicas
-app.use(express.static('public'))
-app.use(express.urlencoded({ extended: true }))
+app.use(cors(corsOptions))
 app.use(express.json())
-
-// serve pasta estática /storage
-const storagePath: string = path.resolve(import.meta.dirname, '../storage')
-app.use('/storage', express.static(storagePath))
 
 // rotas da API
 app.use('/api', appRoutes)
@@ -21,6 +18,9 @@ app.use('/api', appRoutes)
 app.get('/', (req: Request, res: Response) => {
     res.redirect('/api/health')
 })
+
+// middleware de rota não encontrada
+app.use(notFoundHandler)
 
 // middleware de erro global
 app.use(errorHandler)

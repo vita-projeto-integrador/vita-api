@@ -1,11 +1,13 @@
 import type { MimeType } from "../types/multer.types.js"
 
+// formatos permitidos para arquivos de imagem
 export const allowedImageFormats = {
     jpeg: { mime: 'image/jpeg', ext: 'jpg', label: 'JPEG' },
     png: { mime: 'image/png', ext: 'png', label: 'PNG' },
     webp: { mime: 'image/webp', ext: 'webp', label: 'WEBP' },
 } as const satisfies Record<string, MimeType>
 
+// formatos permitidos para arquivos de documentos
 export const allowedDocumentFormats = {
     pdf: { mime: 'application/pdf', ext: 'pdf', label: 'PDF' },
     doc: { mime: 'application/msword', ext: 'doc', label: 'DOC' },

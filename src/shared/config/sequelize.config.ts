@@ -1,7 +1,5 @@
-import { Sequelize, Options, Dialect } from 'sequelize'
+import { Sequelize, Options } from 'sequelize'
 import { env } from './env.js'
-
-type Environment = 'development' | 'production' | 'test'
 
 const { db, app } = env
 
@@ -17,7 +15,10 @@ const sequelizeOptions: Options = {
         min: 0,
         acquire: 30000,
         idle: 10000
-    }
+    },
+    dialectOptions: db.ssl
+        ? { ssl: { rejectUnauthorized: true, ca: db.sslCa } }
+        : {}
 }
 
 // instancia cliente

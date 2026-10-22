@@ -3,8 +3,9 @@ import { Server } from 'node:http'
 import { initDatabase } from './shared/database/init-database.js'
 import { startMainClient } from './shared/database/init-redis.js'
 import { getDbErrorMessage } from './shared/errors/db-error.js'
+import { env } from './shared/config/env.js'
 
-const PORT: number = Number(process.env.PORT) || 4040
+const PORT: number = env.app.port
 
 async function startServer(): Promise<void> {
     // start mysql

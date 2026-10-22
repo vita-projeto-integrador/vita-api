@@ -1,7 +1,9 @@
 import type { UploadPolicyConfig } from '../types/multer.types.js'
 import { MB } from '../utils/units.js'
 
-// políticas
+/*
+    políticas de upload de arquivos
+*/
 const analysisPolicy: UploadPolicyConfig = {
     name: 'analysisPolicy',
     field: 'images',

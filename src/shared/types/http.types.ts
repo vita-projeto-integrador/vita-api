@@ -1,22 +1,23 @@
-/**
-    Contrato HTTP: molde para objeto de resposta HTTP
-    @param {boolean} success indica sucesso ou erro
-    @param {string} message texto que acompanha resposta
-    @param {T} data dado de qualquer tipo 
-*/
-interface ApiResponse<T = unknown> {
-    success: boolean
+// Tipo para detalhes de um erro (AppError.detail)
+type ErrorDetail = string | Record<string, unknown>
+
+// Contrato HTTP: molde para objeto de resposta HTTP de sucesso
+interface SuccessResponse<T = unknown> {
+    success: true
     message: string
     data?: T // recebe o tipo passado em <T> (generics); se não informado T = unknown  
 }
 
-/**
-    Contrato HTTP: molde para lista de dados paginados
-    @param {T} items array com dados de qualquer tipo
-    @param {number} total quantidade total de registros
-    @param {number} page numero da pagina requisitada
-    @param {number} limit quantidade máxima de dados por página
-*/
+// Contrato HTTP: molde para objeto de resposta HTTP de erro
+interface ErrorResponse {
+    success: false
+    message: string
+    detail?: ErrorDetail
+}
+
+type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse
+
+// Contrato HTTP: molde para lista de dados paginados
 interface PaginatedData<T> {
     items: T[]
     total: number
@@ -24,4 +25,4 @@ interface PaginatedData<T> {
     limit: number
 }
 
-export { ApiResponse, PaginatedData }
+export { ApiResponse, PaginatedData, SuccessResponse, ErrorResponse, ErrorDetail }
