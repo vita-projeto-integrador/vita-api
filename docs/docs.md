@@ -29,7 +29,7 @@ Documento de referência do projeto VITA. Define regras e objetivos que devem se
 
 ## 1. Visão geral
 
-O projeto é dividido em quatro repositórios:
+O projeto é dividido em quatro repositórios, todos na organização `vita-projeto-integrador` do GitHub:
 
 | Repositório | Responsabilidade | Stack |
 | --- | --- | --- |
@@ -41,11 +41,19 @@ O projeto é dividido em quatro repositórios:
 - Todos os repositórios devem ser dockerizados.
 - Todos os repositórios devem ter CI/CD com GitHub Actions, Husky e ESLint.
 
+### 1.1 Versões de referência
+
+| Ferramenta | Versão | Observação |
+| --- | --- | --- |
+| pnpm | `11.24.0` | Versão usada no `vita-api`. Fixada no campo `packageManager` do `package.json` de cada repositório Node |
+| PostgreSQL + PostGIS | `postgis/postgis:17-3.5` | Imagem Docker de referência (PostgreSQL 17 com PostGIS 3.5) |
+
 ## 2. Convenções
 
 - Nomes no banco (tabelas, colunas e valores de enum) em `snake_case`, em português e sem acentos. Tabelas no plural.
 - Toda coluna é obrigatória, exceto as marcadas como **opcional**.
 - Faixas de tamanho (ex.: 3–150) são validadas no DTO (Zod). O valor máximo também define o tamanho da coluna.
+- Faixas de valores de dados gravados sem passar por um DTO (ex.: pelos workers) também são garantidas no banco, por constraints `CHECK` (seção 4).
 - Caminhos de storage usam placeholders entre chaves, por exemplo `{id_usuario}`.
 
 ## 3. API
@@ -53,19 +61,26 @@ O projeto é dividido em quatro repositórios:
 - Estrutura base a partir de `src/`: `shared/`, `modules/` e `routes/`, expansível conforme necessário.
 - Toda requisição deve ser validada com Zod.
 - DTOs são os tipos inferidos dos schemas Zod (`z.infer`).
-- O acesso ao banco é feito via Sequelize, usando as models do pacote do `vita-database`.
+- O acesso ao banco é feito via Sequelize, usando as models do pacote `@vita-projeto-integrador/vita-database`, instalado do GitHub Packages.
 
 ## 4. Banco de dados
 
 - O `vita-database` contém as migrations, as models e os scripts de criação e alteração do banco.
 - As migrations definem o schema; as models devem espelhá-las.
-- As models são distribuídas como pacote via GitHub Packages e instaladas pela API.
-- A responsabilidade da API sobre o banco é apenas instanciar a conexão. Falha de conexão é erro fatal (ver seção 11).
-- Toda tabela tem chave primária `id` do tipo `UUID`.
-- Chaves estrangeiras seguem o padrão `id_<entidade no singular>` (ex.: `id_usuario`).
+- As models são distribuídas como pacote via GitHub Packages (`@vita-projeto-integrador/vita-database`) e instaladas pela API. O pacote também fornece o comando que aplica as migrations e a checagem de schema usada pela API.
+- A responsabilidade da API sobre o banco é instanciar a conexão e, no boot, verificar se todas as migrations do pacote instalado foram aplicadas. A verificação é somente leitura: a API nunca cria nem altera o schema. Falha de conexão e schema desatualizado (migrations pendentes) são erros fatais (ver seção 11).
+- Toda tabela tem chave primária `id` do tipo `UUID`, gerada pelo banco (`DEFAULT gen_random_uuid()`).
+- Chaves estrangeiras seguem o padrão `id_<entidade no singular>` (ex.: `id_usuario`), usam `ON DELETE RESTRICT` e têm índice.
 - Toda tabela tem `created_at`, `updated_at` e `deleted_at`. Configuração das models: `timestamps: true`, `underscored: true`, `paranoid: true`.
-- **Soft delete:** nenhum registro é apagado fisicamente. A exclusão lógica deve propagar para os registros filhos. O Sequelize não faz essa propagação nativamente; ela deve ser implementada via hooks.
-- **PostGIS:** coordenadas usam SRID 4326 e a ordem `(longitude, latitude)`, a mesma do GeoJSON.
+- Enums são tipos `ENUM` nativos do PostgreSQL.
+- As faixas de valores marcadas com **CHECK** nas tabelas da seção 5 são garantidas por constraints `CHECK` no banco.
+- **Soft delete:** nenhum registro é apagado fisicamente. A exclusão lógica deve propagar para os registros filhos, na mesma transação:
+  - `usuarios` → `analises`
+  - `analises` → `imagens` e `classificacoes`
+  - `imagens` → `processadas`
+
+  O Sequelize não faz essa propagação nativamente; ela deve ser implementada via hooks nas models do pacote.
+- **PostGIS:** coordenadas usam o tipo `GEOGRAPHY(POINT, 4326)` (SRID 4326), a ordem `(longitude, latitude)`, a mesma do GeoJSON, e índice GiST.
 
 ## 5. Entidades
 
@@ -101,15 +116,18 @@ Solicitação de processamento: o grupo de imagens que o usuário envia de uma v
 | --- | --- | --- |
 | `id` | `UUID` | Chave primária |
 | `id_usuario` | `UUID` | FK para `usuarios`; usuário que solicitou a análise |
-| `status` | `ENUM('em_espera', 'pendente', 'reenfileirada', 'finalizada', 'cancelada')` | Padrão `'em_espera'` |
+| `status` | `ENUM('em_espera', 'processando', 'reenfileirada', 'finalizada', 'falhou')` | Padrão `'em_espera'` |
+| `coordenadas` | `GEOGRAPHY(POINT, 4326)` | Opcional; local da análise. Reservada para o módulo de diagramação (mapa); a regra de preenchimento será definida com ele |
 
 Ciclo de vida do `status`:
 
 - `em_espera`: estado inicial, ao criar a análise.
-- `pendente`: o job saiu da fila e foi assumido por um worker.
-- `reenfileirada`: a análise foi iniciada offline, salva localmente e inserida novamente na fila.
+- `processando`: o job saiu da fila e foi assumido por um worker.
+- `reenfileirada`: o Redis estava indisponível ao receber a análise; ela foi salva localmente e será inserida na fila quando o Redis reconectar (seção 9.1).
 - `finalizada`: o processamento terminou com sucesso.
-- `cancelada`: o processamento falhou em todas as tentativas ou sofreu erro fatal.
+- `falhou`: o processamento falhou em todas as tentativas ou sofreu erro fatal.
+
+Transições: `em_espera → processando`, `reenfileirada → processando` e `processando → finalizada | falhou`.
 
 ### 5.3 `imagens`
 
@@ -122,22 +140,24 @@ Imagens originais enviadas em uma análise.
 | `nome` | `VARCHAR(150)` | Opcional; 3–150 caracteres; nome original do arquivo |
 | `caminho` | `VARCHAR(2048)` | Caminho relativo do arquivo no storage |
 | `coordenadas` | `GEOGRAPHY(POINT, 4326)` | Opcional; local de captura da imagem |
-| `tipo_mime` | `ENUM('image/jpeg', 'image/png', 'image/webp')` | Detectado no upload |
-| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes |
+| `tipo_mime` | `ENUM('jpeg', 'png', 'webp')` | Detectado no upload |
+| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
+
+- `tipo_mime` guarda o subtipo do MIME. A API converte entre o valor do enum e o tipo MIME completo (`jpeg` ↔ `image/jpeg`). JPG e JPEG são o mesmo formato (`jpeg`).
 
 ### 5.4 `processadas`
 
-Imagens geradas pelo pipeline de pré-processamento a partir das originais.
+Imagens geradas pelo pipeline de pré-processamento a partir das originais. Cada imagem original gera várias processadas (seção 10).
 
 | Coluna | Tipo | Regras |
 | --- | --- | --- |
 | `id` | `UUID` | Chave primária |
-| `id_analise` | `UUID` | FK para `analises` |
 | `id_imagem` | `UUID` | FK para `imagens`; imagem original |
-| `nome` | `VARCHAR(150)` | Opcional; 3–150 caracteres; nome original do arquivo |
 | `caminho` | `VARCHAR(2048)` | Caminho relativo do arquivo no storage |
-| `tipo_mime` | `ENUM('image/jpeg', 'image/png', 'image/webp')` | Padrão `'image/webp'` |
-| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes |
+| `tipo_mime` | `ENUM('jpeg', 'png', 'webp')` | Padrão `'webp'` |
+| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
+
+- A análise de uma imagem processada é obtida pela imagem original (`processadas.id_imagem` → `imagens.id_analise`).
 
 ### 5.5 `classificacoes`
 
@@ -146,12 +166,14 @@ Resultado da inferência do modelo sobre uma análise. Cada análise tem uma ún
 | Coluna | Tipo | Regras |
 | --- | --- | --- |
 | `id` | `UUID` | Chave primária |
-| `id_analise` | `UUID` | FK para `analises` |
+| `id_analise` | `UUID` | FK para `analises`; única entre classificações ativas |
 | `classe` | `ENUM('saudavel', 'infectado')` | Rótulo atribuído pelo modelo; sem valor padrão |
-| `confianca` | `FLOAT` | 0–1; probabilidade atribuída pelo modelo à classe escolhida |
-| `tempo_execucao` | `INTEGER` | Duração da inferência em milissegundos |
+| `confianca` | `FLOAT` | 0–1; probabilidade atribuída pelo modelo à classe escolhida; **CHECK** `confianca BETWEEN 0 AND 1` |
+| `tempo_execucao` | `INTEGER` | Duração da inferência em milissegundos; **CHECK** `tempo_execucao >= 0` |
 | `modelo_cnn` | `VARCHAR(150)` | 3–150 caracteres; nome do modelo |
 | `versao_modelo` | `VARCHAR(50)` | 5–50 caracteres; versão do modelo |
+
+- A unicidade de uma classificação por análise é garantida por índice único parcial: `UNIQUE (id_analise) WHERE deleted_at IS NULL`.
 
 Regra de agregação (o modelo classifica cada imagem separadamente e os resultados são combinados):
 
@@ -215,7 +237,7 @@ Regra de agregação (o modelo classifica cada imagem separadamente e os resulta
 
 - Antes da inferência, as imagens de cada análise passam por um pipeline de pré-processamento com a biblioteca `sharp`.
 - Os pipelines ficam em `src/shared/pipelines/`.
-- O pipeline de análises simula **Data Augmentation**: aplica redimensionamento e ajustes de ruído, brilho e saturação em cópias das imagens originais.
+- O pipeline de análises simula **Data Augmentation**: gera várias cópias de cada imagem original, aplicando redimensionamento e ajustes de ruído, brilho e saturação. Cada cópia é um registro em `processadas`.
 - Saída do pipeline: imagens comprimidas em WEBP, no espaço de cores sRGB.
 - As imagens são manipuladas como `Buffer` durante o processamento.
 - A inferência é atualmente simulada com `sharp`.
@@ -233,7 +255,7 @@ Regra de agregação (o modelo classifica cada imagem separadamente e os resulta
 | --- | --- | --- |
 | `AppError` | Erro de negócio previsto, lançado intencionalmente | Resposta HTTP 4xx/5xx com mensagem própria; a API continua operando |
 | Bug | Erro inesperado, não previsto pelo código | Resposta HTTP 500 Internal Server Error genérica |
-| Erro fatal | Falha em serviço essencial (boot, variáveis de ambiente, conexão com o banco) | Lançado imediatamente; encerra a API |
+| Erro fatal | Falha em serviço essencial (boot, variáveis de ambiente, conexão com o banco, schema desatualizado) | Lançado imediatamente; encerra a API |
 
 ## 12. Respostas HTTP
 
@@ -278,6 +300,7 @@ Formato de respostas de erro:
 ## 13. Fora do escopo atual
 
 - Exclusão física de registros (limpeza do banco).
+- Restauração em cascata de registros excluídos logicamente. A propagação definida na seção 4 vale apenas para a exclusão.
 - Refresh token. Com expiração de 1 hora, o usuário precisa fazer login novamente após esse período.
 - Drivers de storage em nuvem (R2, Supabase, Firebase etc.). A interface deve suportá-los, mas não é preciso implementá-los.
 - Armazenamento de outros tipos de arquivo além de imagens (ex.: relatórios PDF).
