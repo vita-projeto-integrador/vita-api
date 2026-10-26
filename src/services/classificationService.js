@@ -1,5 +1,4 @@
 import Classificacao from '../models/Classificacao.js'
-import Classificacao from '../models/Classificacao.js'
 import AppError from '../utils/appError.js'
 
 class ClassificationService {

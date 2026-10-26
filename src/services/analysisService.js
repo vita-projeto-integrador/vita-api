@@ -6,8 +6,7 @@ import startImageQueue from '../queues/imageQueue.js'
 import { Analise, Imagem, Classificacao } from '../models/index.js'
 import { getRedisState } from '../config/redisState.js'
 import storageService from '../utils/storage/storageService.js'
-import { fn, col, literal } from 'sequelize'
-import { literal, Op } from 'sequelize'
+import { fn, col, literal, Op } from 'sequelize'
 
 class AnalysisService {
     // cadastra análise 'pendente'

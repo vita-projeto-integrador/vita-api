@@ -1,7 +1,6 @@
 import app from './app.js'
 import { initDatabase } from './src/database/initDB.js'
 import { initStorage } from './src/utils/storage/init.js'
-import { startMainClient } from './src/config/redis-config.js'
 import { startMainClient, getMainClient } from './src/config/redis-config.js'
 import { stopAllWorkers } from './src/workers/workerManager.js'
 import { connection } from './src/models/index.js'
