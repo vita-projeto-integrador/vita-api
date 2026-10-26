@@ -3,7 +3,8 @@ const URL_MOBILE = process.env.URL_MOBILE
 
 // origens permitidas para requisições
 const allowedOrigins = [
-    URL_WEB
+    URL_WEB,
+    URL_MOBILE
 ]
 
 const corsOptions = {

@@ -3,7 +3,18 @@ import fs from 'fs/promises' // importa módulo assíncrono do pacote
 import { v4 as uuidv4 } from 'uuid'
 import AppError from '../appError.js'
 
+const EXTENSIONS = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp'
+}
+
+
 class StorageService {
+    // devolve a extensão correta para o mimetype da imagem
+    extensionFor(mimeType) {
+        return EXTENSIONS[mimeType] ?? '.bin'
+    }
     async save(buffer, folder, ext) {
         if (!Buffer.isBuffer(buffer)) {
             throw new AppError('Buffer inválido', 400)

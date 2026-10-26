@@ -20,9 +20,10 @@ app.use(express.static('public'))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
-// libera uso da pasta storage
-const storagePath = path.resolve(__dirname, 'storage');
-app.use('/storage', express.static(storagePath));
+// libera só as imagens enviadas (storage/temp e storage/processed ficam privados)
+// a URL continua /storage/uploads/..., igual ao 'caminho' gravado no banco
+const uploadsPath = path.resolve(__dirname, 'storage', 'uploads')
+app.use('/storage/uploads', express.static(uploadsPath))
 
 // rotas
 app.get('/', (req, res) => {

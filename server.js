@@ -2,6 +2,9 @@ import app from './app.js'
 import { initDatabase } from './src/database/initDB.js'
 import { initStorage } from './src/utils/storage/init.js'
 import { startMainClient } from './src/config/redis-config.js'
+import { startMainClient, getMainClient } from './src/config/redis-config.js'
+import { stopAllWorkers } from './src/workers/workerManager.js'
+import { connection } from './src/models/index.js'
 
 const port = process.env.PORT || 4040
 
@@ -33,7 +36,7 @@ async function startServer() {
         })
 
         // sem try catch
-        server.on('uncaughtException', (err) => {
+        process.on('uncaughtException', (err) => {
             console.error(`>> [Node] Exceção não capturada: ${err}`)
             process.exit(1)
         })
@@ -48,9 +51,11 @@ async function startServer() {
         process.on('SIGTERM', async () => {
             console.log('>> [Node] Encerrando servidor...');
 
-            await sequelize.close()
-
-            server.close(() => {
+            // para de aceitar requisições, depois fecha workers, Redis e banco
+            server.close(async () => {
+                await stopAllWorkers()
+                await getMainClient()?.quit()
+                await connection.close()
                 console.log('>> [Node] Servidor encerrado corretamente');
                 process.exit(0);
             });

@@ -16,7 +16,7 @@ const errorMiddleware = (err, req, res, next) => {
 
     // single exit point
     return res.status(statusCode).json({
-        sucess: false,
+        success: false,
         // status: statusCode,
         message: message,
         error: errorContent

@@ -7,6 +7,7 @@ import { Analise, Imagem, Classificacao } from '../models/index.js'
 import { getRedisState } from '../config/redisState.js'
 import storageService from '../utils/storage/storageService.js'
 import { fn, col, literal } from 'sequelize'
+import { literal, Op } from 'sequelize'
 
 class AnalysisService {
     // cadastra análise 'pendente'
@@ -35,7 +36,7 @@ class AnalysisService {
             // se não, salva buffers temporariamente
             const imagesCopy = await Promise.all(
                 files.map(async file => ({
-                    imagePath: await storageService.save(file.buffer, `${analysis.id}`, '.webp'),
+                    imagePath: await storageService.save(file.buffer, `${analysis.id}`, storageService.extensionFor(file.mimetype)),
                     originalName: file.originalname,
                     mimeType: file.mimetype,
                     size: file.size
@@ -43,8 +44,8 @@ class AnalysisService {
             )
             // monta cópia do job
             const payload = {
-                analysisId : job.analysisId,
-                userId : job.userId,
+                analysisId: job.analysisId,
+                userId: job.userId,
                 images: imagesCopy
             }
             // salva temporariamente
@@ -68,7 +69,7 @@ class AnalysisService {
         })
     }
     // atualiza estado de progresso da análise
-    async update(analysisId, data) {
+    async update(analysisId, data, extraWhere = {}) {
         if (!analysisId) {
             throw new AppError('Erro ao enviar ID da análise referente', 400)
         }
@@ -79,7 +80,8 @@ class AnalysisService {
 
         const updatedAnalysis = await Analise.update(data, {
             where: {
-                id: analysisId
+                id: analysisId,
+                ...extraWhere
             }
         })
 
@@ -90,17 +92,19 @@ class AnalysisService {
         }
     }
     // consulta análise por ID
-    async get(analysisId) {
+    async get(analysisId, userId) {
         if (!analysisId) {
             throw new AppError('Erro ao enviar ID da análise referente', 400)
         }
 
-        const analysis = await Analise.findByPk(analysisId)
+        const analysis = await Analise.findOne({
+            where: { id: analysisId, id_usuario: userId }
+        })
 
         return analysis
     }
-    // monta lista de análises com paginação
-    async getAll(userId, page = 1) {
+    // monta lista de análises com paginação e período opcional
+    async getAll(userId, page = 1, from = null, to = null) {
         if (!userId) {
             throw new AppError('Erro ao enviar ID do usuário referente', 400)
         }
@@ -108,19 +112,36 @@ class AnalysisService {
         const limit = 20
         const offset = (page - 1) * limit
 
+        // filtro por período só quando os dois limites forem enviados
+        const where = { id_usuario: userId }
+        if (from && to) {
+            where.createdAt = { [Op.between]: [from, to] }
+        }
+
         const analysisList = await Analise.findAll({
             attributes: [
                 'id',
                 'status',
                 'createdAt',
-                // subquery para contar imagens
+                // subquery para contar imagens (alias da tabela = nome do model: 'analises')
                 [
                     literal(`(
-                    SELECT COUNT(*)
-                    FROM imagens AS imagem
-                    WHERE imagem.id_analise = Analises.id
-                )`),
+                SELECT COUNT(*)
+                FROM imagens AS img
+                WHERE img.id_analise = analises.id AND img.deletedAt IS NULL
+            )`),
                     'imagesCount'
+                ],
+                // subquery para a miniatura: caminho da primeira imagem ou null
+                [
+                    literal(`(
+                SELECT img.caminho
+                FROM imagens AS img
+                WHERE img.id_analise = analises.id AND img.deletedAt IS NULL
+                ORDER BY img.createdAt ASC
+                LIMIT 1
+            )`),
+                    'thumbnail'
                 ]
             ],
             order: [['createdAt', 'DESC']],
@@ -129,28 +150,22 @@ class AnalysisService {
                     model: Classificacao,
                     as: 'classificacao',
                     attributes: ['classe', 'confianca']
-                },
-                {
-                    model: Imagem,
-                    as: 'imagem',
-                    attributes: []
                 }
             ],
-            where: {
-                id_usuario: userId
-            },
+            where,
             limit,
             offset
         })
         return analysisList
     }
     // monta relatório completo da análise
-    async getDetails(analysisId) {
+    async getDetails(analysisId, userId) {
         if (!analysisId) {
             throw new AppError('Erro ao enviar ID da análise referente', 400)
         }
 
-        const analysisDetails = await Analise.findByPk(analysisId, {
+        const analysisDetails = await Analise.findOne({
+            where: { id: analysisId, id_usuario: userId },
             attributes: [
                 'id',
                 'status',

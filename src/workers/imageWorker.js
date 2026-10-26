@@ -48,7 +48,7 @@ function startImageWorker() {
                 const tempOriginalPath = await storageService.save(
                     originalBuffer,
                     `${analysisId}`,
-                    '.webp'
+                    storageService.extensionFor(image.mimeType)
                 )
 
                 // monta objeto para envio à CNN
@@ -147,8 +147,9 @@ function startImageWorker() {
 
     // job iniciou
     imageWorker.on('active', async (job) => {
+        // declarado fora do try para ficar visível no catch
+        const { analysisId } = job.data
         try {
-            const { analysisId } = job.data
             const initializedAnalysis = await services.analysisService.update(analysisId, {
                 status: 'classificando'
             })
@@ -160,8 +161,9 @@ function startImageWorker() {
 
     // job falhou
     imageWorker.on('failed', async (job, err) => {
+        // declarado fora do try para ficar visível no catch
+        const { analysisId } = job.data
         try {
-            const { analysisId } = job.data
             // atualiza análise no banco
             const cancelAnalysis = await services.analysisService.update(analysisId, {
                 status: 'cancelada'
@@ -187,11 +189,11 @@ function startImageWorker() {
     return imageWorker
 }
 
-async function stopImageWorker(){
-    if(imageWorker){
+async function stopImageWorker() {
+    if (imageWorker) {
         await imageWorker.close()
         imageWorker = null
     }
 }
 
-export {startImageWorker, stopImageWorker}
+export { startImageWorker, stopImageWorker }

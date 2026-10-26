@@ -34,13 +34,13 @@ function startImageQueue() {
         errorCount++
     })
 
-    // job enfileirado
-    imageQueue.on('added', async (job) => {
+    // job enfileirado: a Queue do BullMQ emite 'waiting' (e não 'added')
+    imageQueue.on('waiting', async (job) => {
+        // declarado fora do try para ficar visível no catch
+        const { analysisId } = job.data
         try {
-            const { analysisId } = job.data
-            const queuedAnalysis = await services.analysisService.update(analysisId, {
-                status: 'em_fila'
-            })
+            // só marca 'em_fila' se o worker ainda não avançou o status
+            await services.analysisService.update(analysisId, { status: 'em_fila' }, { status: 'pendente' })
         } catch (error) {
             console.error(`>> [BullMQ] Erro ao atualizar progresso da análise ${analysisId}: ${error}`)
         }
