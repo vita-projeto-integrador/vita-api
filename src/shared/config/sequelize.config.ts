@@ -7,7 +7,7 @@ const { db, app } = env
 const sequelizeOptions: Options = {
     host: db.host,
     port: db.port,
-    dialect: db.dialect,
+    dialect: 'postgres', // dialeto fixo
     logging: app.nodeEnv === 'development' ? console.log : false,
     timezone: '+00:00',
     pool: {
@@ -15,6 +15,12 @@ const sequelizeOptions: Options = {
         min: 0,
         acquire: 30000,
         idle: 10000
+    },
+    // opções comuns de todas as models
+    define: {
+        timestamps: true,
+        underscored: true,
+        paranoid: true
     },
     dialectOptions: db.ssl
         ? { ssl: { rejectUnauthorized: true, ca: db.sslCa } }

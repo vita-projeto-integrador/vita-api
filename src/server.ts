@@ -10,7 +10,7 @@ const PORT: number = env.app.port
 async function startServer(): Promise<void> {
     // start mysql
     try {
-        await initDatabase()
+        await initDatabase() // conecta ao banco
     } catch (error) {
         console.error(`>> [Boot] Falha ao conectar banco de dados: ${getDbErrorMessage(error)}`)
         process.exit(1)

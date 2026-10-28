@@ -45,7 +45,7 @@ const DatabaseEnvironmentSchema = z.object({
     DB_PASSWORD: z.string().min(4),
     DB_HOST: z.string().min(1),
     DB_PORT: z.coerce.number().int().positive().max(65535).default(5432),
-    DB_DIALECT: z.literal('postgres'),
+    // DB_DIALECT: z.literal('postgres'),
     DB_SSL: z.stringbool().default(false),
     DB_SSL_CA: sslCaSchema,
 })
@@ -126,7 +126,7 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         password: e.DB_PASSWORD,
         host: e.DB_HOST,
         port: e.DB_PORT,
-        dialect: e.DB_DIALECT,
+        // dialect: e.DB_DIALECT,
         ssl: e.DB_SSL,
         sslCa: e.DB_SSL_CA,
     },
