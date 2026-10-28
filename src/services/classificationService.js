@@ -1,4 +1,5 @@
 import Classificacao from '../models/Classificacao.js'
+import AppError from '../utils/appError.js'
 
 class ClassificationService {
     async create(data) {
@@ -13,7 +14,9 @@ class ClassificationService {
                 confidence: classification.confianca
             }
         } catch (error) {
-            throw new AppError('Não foi possível salvar a classificação: erro interno do servidor')
+            // registra o erro original antes de trocá-lo por um AppError genérico
+            console.error('>> [ClassificationService] Erro ao salvar classificação: ', error)
+            throw new AppError('Não foi possível salvar a classificação: erro interno do servidor', 500)
         }
     }
     async getByAnalysis(analysisId) {

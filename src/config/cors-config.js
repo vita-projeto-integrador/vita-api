@@ -1,9 +1,12 @@
 const URL_WEB = process.env.URL_WEB
-const URL_MOBILE = process.env.URL_MOBILE
+const URL_EXPO_MOBILE = process.env.URL_EXPO_WEB
+const URL_EXPO_METRO = process.env.URL_EXPO_METRO
 
 // origens permitidas para requisições
 const allowedOrigins = [
-    URL_WEB
+    URL_WEB,
+    URL_EXPO_MOBILE,
+    URL_EXPO_METRO
 ]
 
 const corsOptions = {
