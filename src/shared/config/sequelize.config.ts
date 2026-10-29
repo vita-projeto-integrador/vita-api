@@ -1,5 +1,5 @@
 import { Sequelize, Options } from 'sequelize'
-import { env } from './env.js'
+import { env } from './env.config.js'
 
 const { db, app } = env
 

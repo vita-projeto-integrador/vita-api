@@ -3,7 +3,7 @@ import { Server } from 'node:http'
 import { initDatabase } from './shared/database/init-database.js'
 import { startMainClient } from './shared/database/init-redis.js'
 import { getDbErrorMessage } from './shared/errors/db-error.js'
-import { env } from './shared/config/env.js'
+import { env } from './shared/config/env.config.js'
 
 const PORT: number = env.app.port
 

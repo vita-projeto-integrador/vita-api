@@ -1,6 +1,7 @@
 import {
     DataTypes,
     Model,
+    literal,
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
@@ -12,10 +13,11 @@ import type { Analise } from './analise.model.js'
 export class Classificacao extends Model<InferAttributes<Classificacao>, InferCreationAttributes<Classificacao>> {
     declare id: CreationOptional<string>
     declare id_analise: string
-    declare tempo_execucao: number | null
-    declare classe: number
+    declare tempo_execucao: number
+    declare classe: 'saudavel' | 'infectado'
     declare confianca: number
     declare modelo_cnn: string
+    declare versao_modelo: string
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
     declare deletedAt: Date | null
@@ -29,42 +31,44 @@ Classificacao.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: DataTypes.UUIDV4
+            defaultValue: literal('gen_random_uuid()')
         },
         id_analise: {
             type: DataTypes.UUID,
             allowNull: false,
-            unique: true, // garante o 1-1 no banco, não só no código
             references: {
                 model: 'analises',
                 key: 'id'
             },
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT'
         },
         tempo_execucao: {
-            type: DataTypes.INTEGER
-        },
-        classe: {
             type: DataTypes.INTEGER,
             allowNull: false
         },
+        classe: {
+            type: DataTypes.ENUM('saudavel', 'infectado'),
+            allowNull: false
+        },
         confianca: {
-            type: DataTypes.FLOAT,
+            type: DataTypes.DOUBLE,
             allowNull: false
         },
         modelo_cnn: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(150),
+            allowNull: false
+        },
+        versao_modelo: {
+            type: DataTypes.STRING(50),
             allowNull: false
         },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         updatedAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         deletedAt: DataTypes.DATE
     },
@@ -73,7 +77,21 @@ Classificacao.init(
         modelName: 'Classificacao',
         tableName: 'classificacoes',
         timestamps: true,
-        paranoid: true
+        paranoid: true,
+        indexes: [
+            {
+                // índice único parcial para classificações de análises não deletadas
+                name: 'classificacoes_analise_ativa_uq',
+                unique: true,
+                fields: ['id_analise'],
+                where: { deleted_at: null }
+            },
+            {
+                // índice único de otimização
+                name: 'classificacoes_id_analise_idx',
+                fields: ['id_analise'],
+            }
+        ]
     }
 )
 

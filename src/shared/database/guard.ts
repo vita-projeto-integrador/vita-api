@@ -1,4 +1,4 @@
-import { env } from '../config/env.js'
+import { env } from '../config/env.config.js'
 
 // trava para scripts destrutivos: só rodam em banco local
 const HOSTS_LOCAIS = ['localhost', '127.0.0.1', 'db', 'postgres']

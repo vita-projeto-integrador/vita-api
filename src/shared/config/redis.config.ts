@@ -2,7 +2,7 @@ import { Redis } from 'ioredis'
 import RedisError from '../errors/redis-error.js'
 // import { getRedisState, setRedisState } from '../utils/redis-state.js'
 import { customConfigInterface } from '../types/redis.types.js'
-import { env } from './env.js'
+import { env } from './env.config.js'
 
 const { redis } = env
 

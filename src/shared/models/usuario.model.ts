@@ -1,6 +1,7 @@
 import {
     DataTypes,
     Model,
+    literal,
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
@@ -18,9 +19,11 @@ export class Usuario extends Model<InferAttributes<Usuario>, InferCreationAttrib
     declare data_nascimento: string | null
     declare tipo_acesso: CreationOptional<'produtor' | 'estudante'>
     declare endereco: string | null
+    declare cpf: string | null
     declare cnpj: string | null
     declare faculdade: string | null
     declare curso: string | null
+    declare foto_perfil: string | null
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
     declare deletedAt: Date | null
@@ -34,14 +37,14 @@ Usuario.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: DataTypes.UUIDV4
+            defaultValue: literal('gen_random_uuid()')
         },
         nome: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(150),
             allowNull: false
         },
         email: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(250),
             allowNull: false
         },
         senha: {
@@ -49,7 +52,7 @@ Usuario.init(
             allowNull: false
         },
         telefone: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING(15)
         },
         data_nascimento: {
             type: DataTypes.DATEONLY
@@ -60,26 +63,33 @@ Usuario.init(
             allowNull: false
         },
         endereco: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING(255)
+        },
+        cpf: {
+            type: DataTypes.STRING(11),
+            allowNull: true
         },
         cnpj: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING(14),
+            allowNull: true
         },
         faculdade: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING(150)
         },
         curso: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING(150)
+        },
+        foto_perfil: {
+            type: DataTypes.STRING(2048),
+            allowNull: true
         },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         updatedAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         deletedAt: DataTypes.DATE
     },
@@ -93,7 +103,7 @@ Usuario.init(
             {
                 // índice único parcial para usuários não deletados
                 // permite recadastrar email depois de soft delete
-                name: 'usuarios_email_ativo_unique',
+                name: 'usuarios_email_ativo_uq',
                 unique: true,
                 fields: ['email'],
                 where: { deleted_at: null }

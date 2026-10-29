@@ -1,6 +1,7 @@
 import {
     DataTypes,
     Model,
+    literal,
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
@@ -9,14 +10,14 @@ import {
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
 import type { Processada } from './processada.model.js'
-import { TIPOS_MIME, type Ponto, type TipoMime } from './tipo.model.js'
+import { TIPOS_MIME, type Ponto, type TipoMime } from '../types/model.types.js'
 
 export class Imagem extends Model<InferAttributes<Imagem>, InferCreationAttributes<Imagem>> {
     declare id: CreationOptional<string>
     declare id_analise: string
-    declare nome: string
+    declare nome: string | null
     declare caminho: string
-    declare coordenadas: Ponto | null
+    declare coordenadas: CreationOptional<Ponto | null>
     declare tipo_mime: TipoMime
     declare tamanho: number
     declare createdAt: CreationOptional<Date>
@@ -33,7 +34,7 @@ Imagem.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: DataTypes.UUIDV4
+            defaultValue: literal('gen_random_uuid()')
         },
         id_analise: {
             type: DataTypes.UUID,
@@ -42,19 +43,19 @@ Imagem.init(
                 model: 'analises',
                 key: 'id'
             },
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT'
         },
         nome: {
-            type: DataTypes.STRING,
-            allowNull: false
+            type: DataTypes.STRING(150),
+            allowNull: true
         },
         caminho: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(2048),
             allowNull: false
         },
         coordenadas: {
             // SRID 4326 = WGS 84, o sistema do GPS
-            type: DataTypes.GEOMETRY('POINT', 4326)
+            type: DataTypes.GEOGRAPHY('POINT', 4326)
         },
         tipo_mime: {
             type: DataTypes.ENUM(...TIPOS_MIME),
@@ -70,12 +71,10 @@ Imagem.init(
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         updatedAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         deletedAt: DataTypes.DATE
     },
@@ -84,7 +83,20 @@ Imagem.init(
         modelName: 'Imagem',
         tableName: 'imagens',
         timestamps: true,
-        paranoid: true
+        paranoid: true,
+        indexes: [
+            {
+                // índice único de otimização
+                name: 'imagens_id_analise_idx',
+                fields: ['id_analise']
+            },
+            {
+                // índice único  otimização para tipo POSTGIS
+                name: 'imagens_coordenadas_gix',
+                fields: ['coordenadas'],
+                using: 'GIST'
+            }
+        ]
     }
 )
 

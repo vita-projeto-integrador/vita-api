@@ -1,6 +1,7 @@
 import {
     DataTypes,
     Model,
+    literal,
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
@@ -8,7 +9,7 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Imagem } from './imagem.model.js'
-import { TIPOS_MIME, type TipoMime } from './tipo.model.js'
+import { TIPOS_MIME, type TipoMime } from '../types/model.types.js'
 
 export class Processada extends Model<InferAttributes<Processada>, InferCreationAttributes<Processada>> {
     declare id: CreationOptional<string>
@@ -30,7 +31,7 @@ Processada.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: DataTypes.UUIDV4
+            defaultValue: literal('gen_random_uuid()')
         },
         id_imagem: {
             type: DataTypes.UUID,
@@ -39,14 +40,14 @@ Processada.init(
                 model: 'imagens',
                 key: 'id'
             },
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT'
         },
         nome: {
             type: DataTypes.STRING,
             allowNull: false
         },
         caminho: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(2048),
             allowNull: false
         },
         tipo_mime: {
@@ -63,12 +64,10 @@ Processada.init(
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         updatedAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         deletedAt: DataTypes.DATE
     },
@@ -77,7 +76,14 @@ Processada.init(
         modelName: 'Processada',
         tableName: 'processadas',
         timestamps: true,
-        paranoid: true
+        paranoid: true,
+        indexes: [
+            {
+                // índice único de otimização
+                name: 'processadas_id_imagem_idx',
+                fields: ['id_imagem']
+            }
+        ]
     }
 )
 

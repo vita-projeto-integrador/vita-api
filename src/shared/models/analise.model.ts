@@ -1,6 +1,7 @@
 import {
     DataTypes,
     Model,
+    literal,
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
@@ -10,6 +11,7 @@ import connection from '../config/sequelize.config.js'
 import type { Usuario } from './usuario.model.js'
 import type { Imagem } from './imagem.model.js'
 import type { Classificacao } from './classificacao.model.js'
+import { type Ponto } from '../types/model.types.js'
 
 export const STATUS_ANALISE = ['finalizada', 'pendente', 'em_fila', 'classificando', 'cancelada'] as const
 export type StatusAnalise = (typeof STATUS_ANALISE)[number]
@@ -18,6 +20,7 @@ export class Analise extends Model<InferAttributes<Analise>, InferCreationAttrib
     declare id: CreationOptional<string>
     declare id_usuario: string
     declare status: CreationOptional<StatusAnalise>
+    declare coordenadas: CreationOptional<Ponto | null>
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
     declare deletedAt: Date | null
@@ -33,7 +36,7 @@ Analise.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: DataTypes.UUIDV4
+            defaultValue: literal('gen_random_uuid()')
         },
         id_usuario: {
             type: DataTypes.UUID,
@@ -42,22 +45,24 @@ Analise.init(
                 model: 'usuarios',
                 key: 'id'
             },
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT'
         },
         status: {
             type: DataTypes.ENUM(...STATUS_ANALISE),
             defaultValue: 'pendente',
             allowNull: false
         },
+        coordenadas: {
+            type: DataTypes.GEOGRAPHY('POINT', 4326),
+            allowNull: true
+        },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         updatedAt: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.NOW
         },
         deletedAt: DataTypes.DATE
     },
@@ -66,7 +71,20 @@ Analise.init(
         modelName: 'Analise',
         tableName: 'analises',
         timestamps: true,
-        paranoid: true
+        paranoid: true,
+        indexes: [
+            {
+                // índice único de otimização
+                name: 'analises_id_usuario_idx',
+                fields: ['id_usuario']
+            },
+            {
+                // índice único  otimização para tipo POSTGIS
+                name: 'analises_coordenadas_gix',
+                fields: ['coordenadas'],
+                using: 'GIST'
+            }
+        ]
     }
 )
 

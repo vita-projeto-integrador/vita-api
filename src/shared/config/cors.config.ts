@@ -1,4 +1,4 @@
-import { env } from './env.js'
+import { env } from './env.config.js'
 import { CorsOptions } from 'cors'
 
 // origens permitidas para requisições

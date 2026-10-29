@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, ErrorRequestHandler } from 'express'
 import AppError from '../errors/app-error.js'
 import { mapHttpError } from '../errors/http-error.js'
 import type { ErrorResponse } from '../types/http.types.js'
+import { StorageError } from '../errors/storage-error.js'
 
 export const errorHandler: ErrorRequestHandler = (
     err: unknown,
