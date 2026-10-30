@@ -9,15 +9,16 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
+import { USER_PROFILES, type UserProfile } from './enums.js'
 
 export class Usuario extends Model<InferAttributes<Usuario>, InferCreationAttributes<Usuario>> {
     declare id: CreationOptional<string>
     declare nome: string
     declare email: string
-    declare senha: string
+    declare senha_hash: string
     declare telefone: string | null
     declare data_nascimento: string | null
-    declare tipo_acesso: CreationOptional<'produtor' | 'estudante'>
+    declare perfil: CreationOptional<UserProfile>
     declare endereco: string | null
     declare cpf: string | null
     declare cnpj: string | null
@@ -47,7 +48,7 @@ Usuario.init(
             type: DataTypes.STRING(250),
             allowNull: false
         },
-        senha: {
+        senha_hash: {
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -57,9 +58,9 @@ Usuario.init(
         data_nascimento: {
             type: DataTypes.DATEONLY
         },
-        tipo_acesso: {
-            type: DataTypes.ENUM('produtor', 'estudante'),
-            defaultValue: 'produtor',
+        perfil: {
+            type: DataTypes.ENUM(...USER_PROFILES),
+            defaultValue: 'outro',
             allowNull: false
         },
         endereco: {

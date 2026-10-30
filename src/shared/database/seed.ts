@@ -5,7 +5,7 @@ import { guardLocalDatabase } from './guard.js'
 async function main() {
     guardLocalDatabase()
 
-    const senha = await bcrypt.hash('senha123', 10)
+    const senha_hash = await bcrypt.hash('senha123', 10)
 
     // tudo ou nada: se um insert falhar, nada fica gravado
     await connection.transaction(async (transaction) => {
@@ -14,15 +14,15 @@ async function main() {
                 {
                     nome: 'Produtor Exemplo',
                     email: 'produtor@vita.dev',
-                    senha,
-                    tipo_acesso: 'produtor',
+                    senha_hash,
+                    perfil: 'produtor',
                     cnpj: '00.000.000/0001-00'
                 },
                 {
                     nome: 'Estudante Exemplo',
                     email: 'estudante@vita.dev',
-                    senha,
-                    tipo_acesso: 'estudante',
+                    senha_hash,
+                    perfil: 'estudante',
                     faculdade: 'Fatec',
                     curso: 'DSM'
                 }
@@ -40,7 +40,7 @@ async function main() {
                 id_analise: analise.id,
                 nome: 'folha-01.jpg',
                 caminho: 'uploads/folha-01.jpg',
-                tipo_mime: 'image/jpeg',
+                tipo_mime: 'jpeg',
                 tamanho: 245_760,
                 // [longitude, latitude]
                 coordenadas: {
@@ -57,7 +57,7 @@ async function main() {
                 id_imagem: imagem.id,
                 nome: 'folha-01-processada.png',
                 caminho: 'uploads/processadas/folha-01-processada.png',
-                tipo_mime: 'image/png',
+                tipo_mime: 'png',
                 tamanho: 198_400
             },
             { transaction }
@@ -66,9 +66,10 @@ async function main() {
         await Classificacao.create(
             {
                 id_analise: analise.id,
-                classe: 1,
+                classe: 'saudavel',
                 confianca: 0.93,
-                modelo_cnn: 'vita-cnn-v1',
+                modelo_cnn: 'vita-cnn',
+                versao_modelo: '1.0.0',
                 tempo_execucao: 840
             },
             { transaction }

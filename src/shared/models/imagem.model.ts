@@ -10,7 +10,8 @@ import {
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
 import type { Processada } from './processada.model.js'
-import { TIPOS_MIME, type Ponto, type TipoMime } from '../types/model.types.js'
+import type { Ponto } from '../types/model.types.js'
+import { ALL_FILE_FORMATS, type FileFormat } from './enums.js'
 
 export class Imagem extends Model<InferAttributes<Imagem>, InferCreationAttributes<Imagem>> {
     declare id: CreationOptional<string>
@@ -18,7 +19,7 @@ export class Imagem extends Model<InferAttributes<Imagem>, InferCreationAttribut
     declare nome: string | null
     declare caminho: string
     declare coordenadas: CreationOptional<Ponto | null>
-    declare tipo_mime: TipoMime
+    declare tipo_mime: FileFormat
     declare tamanho: number
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
@@ -58,7 +59,7 @@ Imagem.init(
             type: DataTypes.GEOGRAPHY('POINT', 4326)
         },
         tipo_mime: {
-            type: DataTypes.ENUM(...TIPOS_MIME),
+            type: DataTypes.ENUM(...ALL_FILE_FORMATS),
             allowNull: false
         },
         tamanho: {

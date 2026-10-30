@@ -12,14 +12,12 @@ import type { Usuario } from './usuario.model.js'
 import type { Imagem } from './imagem.model.js'
 import type { Classificacao } from './classificacao.model.js'
 import { type Ponto } from '../types/model.types.js'
-
-export const STATUS_ANALISE = ['finalizada', 'pendente', 'em_fila', 'classificando', 'cancelada'] as const
-export type StatusAnalise = (typeof STATUS_ANALISE)[number]
+import { ANALYSIS_STATUSES, type AnalysisStatus } from './enums.js'
 
 export class Analise extends Model<InferAttributes<Analise>, InferCreationAttributes<Analise>> {
     declare id: CreationOptional<string>
     declare id_usuario: string
-    declare status: CreationOptional<StatusAnalise>
+    declare status: CreationOptional<AnalysisStatus>
     declare coordenadas: CreationOptional<Ponto | null>
     declare createdAt: CreationOptional<Date>
     declare updatedAt: CreationOptional<Date>
@@ -48,7 +46,7 @@ Analise.init(
             onDelete: 'RESTRICT'
         },
         status: {
-            type: DataTypes.ENUM(...STATUS_ANALISE),
+            type: DataTypes.ENUM(...ANALYSIS_STATUSES),
             defaultValue: 'pendente',
             allowNull: false
         },

@@ -4,6 +4,7 @@ import { Analise } from './analise.model.js'
 import { Imagem } from './imagem.model.js'
 import { Processada } from './processada.model.js'
 import { Classificacao } from './classificacao.model.js'
+import { registerCascadeDelete } from './cascade-delete.js'
 
 /*
     USUÁRIO 1-N ANÁLISE
@@ -28,5 +29,10 @@ Processada.belongsTo(Imagem, { foreignKey: 'id_imagem', as: 'imagem' })
 */
 Analise.hasOne(Classificacao, { foreignKey: 'id_analise', as: 'classificacao' })
 Classificacao.belongsTo(Analise, { foreignKey: 'id_analise', as: 'analise' })
+
+/*
+    Configura exclusão em cascata
+*/
+registerCascadeDelete({ Usuario, Analise, Imagem, Processada, Classificacao })
 
 export { connection, Usuario, Analise, Imagem, Processada, Classificacao }

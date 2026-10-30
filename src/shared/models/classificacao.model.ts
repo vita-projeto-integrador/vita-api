@@ -9,12 +9,13 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
+import { CLASSIFICATION_CLASSES, type ClassificationClass } from './enums.js'
 
 export class Classificacao extends Model<InferAttributes<Classificacao>, InferCreationAttributes<Classificacao>> {
     declare id: CreationOptional<string>
     declare id_analise: string
     declare tempo_execucao: number
-    declare classe: 'saudavel' | 'infectado'
+    declare classe: ClassificationClass
     declare confianca: number
     declare modelo_cnn: string
     declare versao_modelo: string
@@ -47,7 +48,7 @@ Classificacao.init(
             allowNull: false
         },
         classe: {
-            type: DataTypes.ENUM('saudavel', 'infectado'),
+            type: DataTypes.ENUM(...CLASSIFICATION_CLASSES),
             allowNull: false
         },
         confianca: {

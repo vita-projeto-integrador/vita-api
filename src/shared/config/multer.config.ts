@@ -14,4 +14,14 @@ const analysisPolicy: UploadPolicyConfig = {
     }
 }
 
-export { analysisPolicy }
+const profilePhotoPolicy: UploadPolicyConfig = {
+    name: 'analysisPolicy',
+    field: 'images',
+    formats: ['png', 'webp', 'jpeg'],
+    limits: {
+        fileSize: 5 * MB,
+        files: 1
+    }
+}
+
+export { analysisPolicy, profilePhotoPolicy }
