@@ -85,16 +85,14 @@ const CourseSchema = z
 const FileSize = profilePhotoPolicy.limits?.fileSize || (5 * MB)
 const FileTypes: string[] = profilePhotoPolicy.formats.map(formatToMime) || ['image/png', 'image/jpeg', 'image/webp']
 
-const ProfilePhotoSchema = z.object({
-    foto_perfil: z
-        .custom<File>((val) => val instanceof File)
-        .refine((file) => file.size <= FileSize, {
-            message: `Tamanho máximo de 5 MB`,
-        })
-        .refine((file) => FileTypes.includes(file.type), {
-            message: 'Apenas formatos .jpg, .jpeg, .png e .webp são aceitos',
-        }),
-});
+const ProfilePhotoSchema = z
+    .custom<File>((val) => val instanceof File)
+    .refine((file) => file.size <= FileSize, {
+        message: `Tamanho máximo de 5 MB`,
+    })
+    .refine((file) => FileTypes.includes(file.type), {
+        message: 'Apenas formatos .jpg, .jpeg, .png e .webp são aceitos',
+    })
 
 // validações para operações com usuários
 const UserIdParamSchema = z.object({

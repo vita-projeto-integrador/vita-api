@@ -1,3 +1,4 @@
+import type { TokenPayload } from "./token.types.ts"
 /*
     Declaração de tipos globais
     Personaliza interfaces nativas do Express  
@@ -7,11 +8,7 @@ declare global {
         interface Request {
             // userId?: string
             // userRole?: 'admin' | 'user'
-            user?: {
-                id: number,
-                name: string,
-                email: string
-            }
+            user?: TokenPayload
         }
     }
 }

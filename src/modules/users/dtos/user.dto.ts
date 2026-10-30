@@ -14,4 +14,4 @@ export type LoginBodyDTO = z.infer<typeof LoginBodySchema>;
 
 export type UserIdParamsDTO = z.infer<typeof UserIdParamSchema>;
 
-export type UpdateUserBodyDTO = z.infer<typeof UpdateMeBodySchema>;
+export type UpdateMeBodyDTO = z.infer<typeof UpdateMeBodySchema>;

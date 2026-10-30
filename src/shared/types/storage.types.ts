@@ -24,7 +24,6 @@ export interface StoredObjectInfo {
     - trabalha só com keys (endereço lógico), nunca com caminhos de disco
     - lança apenas StorageError (nunca AppError/HTTP)
 */
-
 export interface StorageProvider {
   // boot: pastas, limpeza e teste de gravação
   init(): Promise<void>
