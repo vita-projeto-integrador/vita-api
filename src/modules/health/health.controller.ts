@@ -7,6 +7,7 @@ class HealthController {
         try {
             const mysql: boolean = await HealthService.checkDatabase()
             const redis: boolean = await HealthService.checkRedis()
+            const storage: boolean = await HealthService.checkStorage()
 
             // resposta final
             return AppResponse.send(res, 200, 'API disponível', {
@@ -15,7 +16,8 @@ class HealthController {
                 timestamp: new Date().toISOString(),
                 services: {
                     mysql,
-                    redis
+                    redis,
+                    storage
                 }
             })
         } catch (error: unknown) {

@@ -1,321 +1,231 @@
-import { createReadStream } from 'node:fs'
-import type { Dirent, Stats } from 'node:fs'
 import fs from 'node:fs/promises'
+import { createReadStream, type Dirent } from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { Readable } from 'node:stream'
-import type { StorageProvider, StoredObjectInfo } from '../types/storage.types.js'
+import type { StorageProvider } from '../types/storage.types.js'
 import { StorageError } from '../errors/storage-error.js'
-import { assertValidKey, contentTypeFromKey } from './keys.js'
+import { assertValidKey } from './keys.js'
+
+// códigos de erro do sistema
+const UNAVAILABLE_CODES = ['EACCES', 'EPERM', 'EROFS', 'ENOSPC', 'EDQUOT', 'EMFILE'] // storage inutilizável
+const MISSING_CODES = ['ENOENT', 'ENOTDIR'] // recurso não existe
 
 /*
-    códigos de erro do sistema
-*/
-const UNAVAILABLE_ERROR_CODES = ['EACCES', 'EPERM', 'EROFS', 'ENOSPC', 'EDQUOT', 'EMFILE'] // storage inutilizável
-const MISSING_ERROR_CODES = ['ENOENT', 'ENOTDIR'] // arquivo ou pasta não existe
+    Adaptador de storage em disco local
+    STORAGE_ROOT/
+        files/ -> um arquivo por key
+        tmp/   -> gravações em andamento (.part)
+    tmp/ fica na mesma raiz para que o rename final seja atômico (mesmo disco)
 
-/* 
-    Adaptador que armazena arquivos no disco local
-    objects/ -> 1 arquivo por key
-    tmp/ -> `.part` ainda sendo gravados
-    1. converter a key em caminho
-    2. executar a operação de disco no try
-    3. traduzir erro no catch
+    padrão dos métodos:
+    1. converte a key em caminho (toPath já valida a key)
+    2. executa a operação de disco no try
+    3. traduz o erro do sistema no catch (toStorageError)
 */
 export class LocalStorageProvider implements StorageProvider {
-    private readonly objectsDir: string
+    private readonly filesDir: string
     private readonly tmpDir: string
+    private readonly tmpTtlMs: number
 
-    // root: caminho absoluto da raiz do storage (do .env)
-    constructor(root: string) {
-        if (!path.isAbsolute(root)) {
-            throw new Error(`>> [Storage] STORAGE_ROOT deve ser um caminho absoluto: ${root}`)
-        }
-
-        this.objectsDir = path.join(root, 'objects')
+    // root já chega absoluto do .env
+    constructor(root: string, tmpTtlMs: number) {
+        this.filesDir = path.join(root, 'files')
         this.tmpDir = path.join(root, 'tmp')
+        this.tmpTtlMs = tmpTtlMs
     }
 
     /*
-        CICLO DE VIDA DO STORAGE
+        ciclo de vida
     */
 
-    // cria pastas e testa gravação
+    // cria pastas, limpa sobras de tmp/ e testa gravação
     async init(): Promise<void> {
         try {
-            await fs.mkdir(this.objectsDir, { recursive: true })
+            await fs.mkdir(this.filesDir, { recursive: true })
             await fs.mkdir(this.tmpDir, { recursive: true })
         } catch (error) {
-            throw this.mapFsError(error)
+            throw this.toStorageError(error)
         }
 
+        await this.cleanTmp()
         await this.healthCheck()
     }
 
-    // grava e apaga arquivo de teste
+    // grava e apaga um arquivo de teste (mkdir sozinho não detecta falta de permissão)
     async healthCheck(): Promise<void> {
-        const probeFile = path.join(this.tmpDir, `.probe-${randomUUID()}`)
+        const testFile = path.join(this.tmpDir, `teste-${randomUUID()}`)
 
         try {
-            await fs.writeFile(probeFile, '')
-            await fs.rm(probeFile, { force: true })
+            await fs.writeFile(testFile, '')
+            await fs.rm(testFile, { force: true })
         } catch (error) {
-            throw new StorageError('STORAGE_UNAVAILABLE', 'Storage sem permissão de escrita', {
-                cause: error,
-            })
+            throw new StorageError('UNAVAILABLE', 'Storage sem permissão de escrita', { cause: error })
         }
     }
 
     /*
-        ESCRITA NO STORAGE
+        escrita
     */
 
-    // grava o arquivo de forma atômica - se key já existe, sobrescreve
-    async put(key: string, data: Buffer): Promise<StoredObjectInfo> {
-        const targetFile = this.toPath(key)
-        const tmpFile = path.join(this.tmpDir, `${randomUUID()}.part`)
+    // grava primeiro em tmp/ e depois move: quem lê nunca vê o arquivo pela metade
+    async save(key: string, data: Buffer): Promise<void> {
+        const filePath = this.toPath(key)
+        const tmpPath = path.join(this.tmpDir, `${randomUUID()}.part`)
 
         try {
-            // garante que destino existe
-            await fs.mkdir(path.dirname(targetFile), { recursive: true })
-
-            // grava primeiro no temporário
-            await fs.writeFile(tmpFile, data, { flag: 'wx' }) // flag 'wx' = falha se o arquivo já existir
-
-            // move do temporário pro final
-            await fs.rename(tmpFile, targetFile)
-
-            // lê metadados
-            const stats = await fs.stat(targetFile)
-            return this.toInfo(key, stats)
+            await fs.mkdir(path.dirname(filePath), { recursive: true })
+            await fs.writeFile(tmpPath, data)
+            await fs.rename(tmpPath, filePath) // troca atômica; sobrescreve se já existir
         } catch (error) {
-            // se falhou, apaga temporário tmmb
-            await this.removeQuietly(tmpFile)
-            throw this.mapFsError(error, key)
+            // remove o temporário; se falhar, cleanTmp apaga no próximo boot
+            await fs.rm(tmpPath, { force: true }).catch(() => {})
+            throw this.toStorageError(error, key)
         }
     }
 
     /*
-        LEITURA NO STORAGE
+        leitura
     */
 
-    // lê o arquivo inteiro na memória
-    async getBuffer(key: string): Promise<Buffer> {
+    // lê o arquivo inteiro (sem encoding = binário)
+    async read(key: string): Promise<Buffer> {
         const filePath = this.toPath(key)
 
         try {
-            // sem encoding: lê como binário
             return await fs.readFile(filePath)
         } catch (error) {
-            throw this.mapFsError(error, key)
+            throw this.toStorageError(error, key)
         }
     }
 
-    // abre  como stream para enviar na resposta HTTP sem carregar tudo na memória
-    async getStream(key: string): Promise<{ stream: Readable; info: StoredObjectInfo }> {
-        // confere se o arquivo existe antes de abrir o stream
-        const info = await this.stat(key)
+    // confere a existência antes de abrir o stream:
+    // assim o erro acontece antes de a resposta HTTP começar
+    async readStream(key: string): Promise<Readable> {
+        const found = await this.exists(key)
 
-        if (info === null) {
-            throw new StorageError('STORAGE_NOT_FOUND', 'Objeto não encontrado', { key })
+        if (!found) {
+            throw new StorageError('NOT_FOUND', 'Arquivo não encontrado', { key })
         }
 
-        // abre stream de leitura
-        const filePath = this.toPath(key)
-        const stream = createReadStream(filePath)
-
-        return { stream, info }
+        return createReadStream(this.toPath(key))
     }
 
-    // retorna metadados ou null
-    async stat(key: string): Promise<StoredObjectInfo | null> {
+    async exists(key: string): Promise<boolean> {
         const filePath = this.toPath(key)
 
         try {
             const stats = await fs.stat(filePath)
-
-            // pasta com o mesmo nome não conta como arquivo
-            if (!stats.isFile()) {
-                return null
-            }
-
-            return this.toInfo(key, stats)
+            return stats.isFile() // pasta com o mesmo nome não conta
         } catch (error) {
-            if (this.isMissingError(error)) {
-                return null
-            }
-            throw this.mapFsError(error, key)
+            if (this.isMissing(error)) return false
+            throw this.toStorageError(error, key)
         }
     }
 
+    // percorre a pasta do prefixo (e subpastas) e devolve só os arquivos
+    async list(prefix: string): Promise<string[]> {
+        const folderPath = this.toPath(prefix)
+        let entries: Dirent[]
+
+        try {
+            entries = await fs.readdir(folderPath, { recursive: true, withFileTypes: true })
+        } catch (error) {
+            if (this.isMissing(error)) return [] // prefixo inexistente = lista vazia
+            throw this.toStorageError(error, prefix)
+        }
+
+        const keys: string[] = []
+        for (const entry of entries) {
+            if (!entry.isFile()) continue
+            const filePath = path.join(entry.parentPath, entry.name)
+            keys.push(this.toKey(filePath))
+        }
+        return keys
+    }
+
     /*
-        DELEÇÃO NO STORAGE
+        deleção
     */
 
-    // apaga arquivo
+    // force: true -> não falha se o arquivo não existir (seguro para retries)
     async delete(key: string): Promise<void> {
         const filePath = this.toPath(key)
 
         try {
-            // force: true -> não lança erro se o arquivo não existir
             await fs.rm(filePath, { force: true })
         } catch (error) {
-            throw this.mapFsError(error, key)
+            throw this.toStorageError(error, key)
         }
-
-        await this.removeEmptyParentDirs(path.dirname(filePath))
     }
 
-    // apaga todos os arquivos sob o prefixo e retorna quantos foram apagados
-    async deletePrefix(prefix: string): Promise<number> {
-        // trava de segurança: exige pelo menos 2 segmentos
-        const segments = prefix.split('/')
-        if (segments.length < 2) {
-            throw new StorageError('STORAGE_INVALID_KEY', 'Prefixo amplo demais para deleção', {
-                key: prefix,
-            })
+    async deleteByPrefix(prefix: string): Promise<void> {
+        // trava: exige ao menos 2 segmentos ("analises" sozinho apagaria tudo)
+        if (prefix.split('/').length < 2) {
+            throw new StorageError('INVALID_KEY', 'Prefixo amplo demais para deleção', { key: prefix })
         }
 
-        const dirPath = this.toPath(prefix)
+        const folderPath = this.toPath(prefix)
 
-        // conta antes de apagar
-        let deletedCount = 0
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for await (const item of this.list(prefix)) {
-            deletedCount++
-        }
-
-        // apaga a pasta inteira
         try {
-            await fs.rm(dirPath, { recursive: true, force: true })
+            await fs.rm(folderPath, { recursive: true, force: true })
         } catch (error) {
-            throw this.mapFsError(error, prefix)
-        }
-
-        await this.removeEmptyParentDirs(path.dirname(dirPath))
-
-        return deletedCount
-    }
-
-    /*
-        LISTAGEM
-        Percorre todos os arquivos sob o prefixo
-        Async * cria um gerador assíncrono para evitar lista enorme na memória
-    */
-    async *list(prefix: string): AsyncIterable<StoredObjectInfo> {
-        const dirPath = this.toPath(prefix)
-
-        // lê todas as entradas da pasta, incluindo subpastas
-        let entries: Dirent[]
-        try {
-            entries = await fs.readdir(dirPath, { recursive: true, withFileTypes: true })
-        } catch (error) {
-            // prefixo não existe -> lista vazia
-            if (this.isMissingError(error)) {
-                return
-            }
-            throw this.mapFsError(error, prefix)
-        }
-
-        // entrega apenas os arquivos
-        for (const entry of entries) {
-            if (!entry.isFile()) {
-                continue
-            }
-
-            const fullPath = path.join(entry.parentPath, entry.name)
-
-            try {
-                const stats = await fs.stat(fullPath)
-                const key = this.toKey(fullPath)
-                yield this.toInfo(key, stats)
-            } catch (error) {
-                // o arquivo pode ter sido apagado durante a listagem
-                if (this.isMissingError(error)) {
-                    continue
-                }
-                throw this.mapFsError(error)
-            }
+            throw this.toStorageError(error, prefix)
         }
     }
 
     /*
-        CONVERSÕES KEY -> CAMINHO
-        Converte key em caminho absoluto para objects/
+        auxiliares
     */
 
+    // key -> caminho absoluto dentro de files/
     private toPath(key: string): string {
-        // valida o formato da key
         assertValidKey(key)
 
-        // monta caminho garantindo separador correto
-        const keyParts = key.split('/')
-        const fullPath = path.join(this.objectsDir, ...keyParts)
+        // separar por '/' e juntar com path.join garante o separador certo no Windows
+        const filePath = path.join(this.filesDir, ...key.split('/'))
 
-        // defesa extra: caminho deve continuar dentro de objects/
-        const relativePath = path.relative(this.objectsDir, fullPath)
-        const isOutside =
-            relativePath === '' || relativePath.startsWith('..') || path.isAbsolute(relativePath)
-
-        if (isOutside) {
-            throw new StorageError('STORAGE_INVALID_KEY', 'Key resolve para fora do storage', { key })
+        // defesa extra: o caminho final precisa continuar dentro de files/
+        if (!filePath.startsWith(this.filesDir + path.sep)) {
+            throw new StorageError('INVALID_KEY', 'Key aponta para fora do storage', { key })
         }
 
-        return fullPath
+        return filePath
     }
 
-    // converte caminho absoluto em key usando '/'. */
-    private toKey(fullPath: string): string {
-        const relativePath = path.relative(this.objectsDir, fullPath)
-        const parts = relativePath.split(path.sep)
-        return parts.join('/')
+    // caminho absoluto -> key (sempre com '/', inclusive no Windows)
+    private toKey(filePath: string): string {
+        const relativePath = path.relative(this.filesDir, filePath)
+        return relativePath.split(path.sep).join('/')
     }
 
-    // monta objeto de metadados
-    private toInfo(key: string, stats: Stats): StoredObjectInfo {
-        return {
-            key: key,
-            size: stats.size,
-            contentType: contentTypeFromKey(key),
-            updatedAt: stats.mtime,
-        }
-    }
+    // apaga arquivos de tmp/ mais antigos que STORAGE_TMP_TTL_HOURS
+    // (sobras de gravações interrompidas por crash)
+    private async cleanTmp(): Promise<void> {
+        const limit = Date.now() - this.tmpTtlMs
 
-    /*
-        Auxiliares
-    */
-
-    // tenta apagar um arquivo e ignora qualquer erro (limpezas)
-    private async removeQuietly(filePath: string): Promise<void> {
         try {
-            await fs.rm(filePath, { force: true })
-        } catch {
-            // Ignorado - manutenção apaga sobras de tmp/ depois
-        }
-    }
+            const names = await fs.readdir(this.tmpDir)
 
-    // remove pastas vazias subindo até objects/
-    private async removeEmptyParentDirs(startDir: string): Promise<void> {
-        let currentDir = startDir
+            for (const name of names) {
+                const tmpPath = path.join(this.tmpDir, name)
+                const stats = await fs.stat(tmpPath)
 
-        while (currentDir.startsWith(this.objectsDir + path.sep)) {
-            try {
-                // rmdir só funciona em pastas vazias
-                await fs.rmdir(currentDir)
-            } catch {
-                // pasta não vazia/removida -> para de subir
-                return
+                if (stats.mtimeMs < limit) {
+                    await fs.rm(tmpPath, { force: true })
+                }
             }
-
-            currentDir = path.dirname(currentDir)
+        } catch (error) {
+            // limpeza não impede o boot; tenta de novo no próximo
+            console.warn(`>> [Storage] Falha ao limpar tmp/: ${error}`)
         }
     }
 
     /*
-        TRATAMENTO DE ERROS
+        tratamento de erros
     */
 
-    // extrai código do sistema se existir
+    // extrai o código do erro do sistema (ex.: 'ENOENT')
     private getErrorCode(error: unknown): string | undefined {
         if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
             return error.code
@@ -323,35 +233,24 @@ export class LocalStorageProvider implements StorageProvider {
         return undefined
     }
 
-    // verifica se o erro significa "arquivo ou pasta não existe"
-    private isMissingError(error: unknown): boolean {
+    private isMissing(error: unknown): boolean {
         const code = this.getErrorCode(error)
-
-        if (code === undefined) {
-            return false
-        }
-
-        return MISSING_ERROR_CODES.includes(code)
+        return code !== undefined && MISSING_CODES.includes(code)
     }
 
-    // traduz erros do sistema para StorageError
-    private mapFsError(error: unknown, key?: string): StorageError {
-        // erros já traduzidos são devolvidos do mesmo jeito
-        if (error instanceof StorageError) {
-            return error
-        }
+    // traduz erro do sistema em StorageError
+    private toStorageError(error: unknown, key?: string): StorageError {
+        // erro já traduzido (ex.: key inválida) segue como está
+        if (error instanceof StorageError) return error
 
         const code = this.getErrorCode(error)
-        const options = { key: key, cause: error }
 
         if (code === 'ENOENT') {
-            return new StorageError('STORAGE_NOT_FOUND', 'Objeto não encontrado', options)
+            return new StorageError('NOT_FOUND', 'Arquivo não encontrado', { key, cause: error })
         }
-
-        if (code !== undefined && UNAVAILABLE_ERROR_CODES.includes(code)) {
-            return new StorageError('STORAGE_UNAVAILABLE', `Storage indisponível (${code})`, options)
+        if (code !== undefined && UNAVAILABLE_CODES.includes(code)) {
+            return new StorageError('UNAVAILABLE', `Storage indisponível (${code})`, { key, cause: error })
         }
-
-        return new StorageError('STORAGE_FAILURE', `Falha de E/S no storage (${code})`, options)
+        return new StorageError('FAILURE', `Falha de leitura/escrita (${code})`, { key, cause: error })
     }
 }

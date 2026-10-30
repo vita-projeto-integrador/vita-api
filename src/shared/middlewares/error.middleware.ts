@@ -2,7 +2,7 @@ import { Request, Response, NextFunction, ErrorRequestHandler } from 'express'
 import AppError from '../errors/app-error.js'
 import { mapHttpError } from '../errors/http-error.js'
 import type { ErrorResponse } from '../types/http.types.js'
-import { StorageError } from '../errors/storage-error.js'
+import { mapStorageError } from '../errors/storage-error.js'
 
 export const errorHandler: ErrorRequestHandler = (
     err: unknown,
@@ -16,7 +16,7 @@ export const errorHandler: ErrorRequestHandler = (
         return
     }
     // se for erro de biblioteca, traduz pra AppError
-    const appError = err instanceof AppError ? err : mapHttpError(err)
+    const appError = err instanceof AppError ? err : (mapHttpError(err) ?? mapStorageError(err))
     // erros esperados
     if (appError) {
         if (appError.statusCode >= 500) {

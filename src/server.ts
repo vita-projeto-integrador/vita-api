@@ -4,15 +4,23 @@ import { initDatabase } from './shared/database/init-database.js'
 import { startMainClient } from './shared/database/init-redis.js'
 import { getDbErrorMessage } from './shared/errors/db-error.js'
 import { env } from './shared/config/env.config.js'
+import { initStorage } from './shared/storage/init-storage.js'
 
 const PORT: number = env.app.port
 
 async function startServer(): Promise<void> {
-    // start mysql
+    // start postgres
     try {
         await initDatabase() // conecta ao banco
     } catch (error) {
         console.error(`>> [Boot] Falha ao conectar banco de dados: ${getDbErrorMessage(error)}`)
+        process.exit(1)
+    }
+    // start storage
+    try {
+        await initStorage() // cria pastas, limpa tmp/ e testa gravação
+    } catch (error) {
+        console.error(`>> [Boot] Falha ao preparar storage: ${error}`)
         process.exit(1)
     }
     // start redis

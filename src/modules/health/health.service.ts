@@ -1,4 +1,5 @@
 import connection from "../../shared/config/sequelize.config.js"
+import storage from "../../shared/config/storage.config.js"
 import { getMainClient } from "../../shared/database/init-redis.js"
 import { withTimeout } from "../../shared/utils/with-timeout.js"
 import { getDbErrorMessage } from "../../shared/errors/db-error.js"
@@ -28,6 +29,16 @@ class HealthService {
             return reply === 'PONG'
         } catch (error: unknown) {
             console.error(`[Redis] Erro inesperado ao conectar Redis: ${error}`)
+            return false
+        }
+    }
+    public async checkStorage(): Promise<boolean> {
+        try {
+            // grava e apaga um arquivo de teste
+            await withTimeout(storage.healthCheck(), 2000)
+            return true
+        } catch (error) {
+            console.error(`>> [Storage] ${error}`)
             return false
         }
     }
