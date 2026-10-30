@@ -11,9 +11,12 @@ import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
 import type { Processada } from './processada.model.js'
 import type { Ponto } from '../types/model.types.js'
-import { ALL_FILE_FORMATS, type FileFormat } from './enums.js'
+import { ALL_FILE_FORMATS, type FileFormat, type Timestamps } from './enums.js'
 
-export class Imagem extends Model<InferAttributes<Imagem>, InferCreationAttributes<Imagem>> {
+export class Imagem extends Model<
+    InferAttributes<Imagem, { omit: Timestamps }>,
+    InferCreationAttributes<Imagem, { omit: Timestamps }>
+> {
     declare id: CreationOptional<string>
     declare id_analise: string
     declare nome: string | null
@@ -21,8 +24,8 @@ export class Imagem extends Model<InferAttributes<Imagem>, InferCreationAttribut
     declare coordenadas: CreationOptional<Ponto | null>
     declare tipo_mime: FileFormat
     declare tamanho: number
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+    declare createdAt: Date
+    declare updatedAt: Date
     declare deletedAt: Date | null
 
     // associações (preenchidas só quando usadas no include)
@@ -68,16 +71,7 @@ Imagem.init(
             validate: {
                 min: 1
             }
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        deletedAt: DataTypes.DATE
+        }
     },
     {
         sequelize: connection,

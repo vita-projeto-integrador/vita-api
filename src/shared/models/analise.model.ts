@@ -12,15 +12,18 @@ import type { Usuario } from './usuario.model.js'
 import type { Imagem } from './imagem.model.js'
 import type { Classificacao } from './classificacao.model.js'
 import { type Ponto } from '../types/model.types.js'
-import { ANALYSIS_STATUSES, type AnalysisStatus } from './enums.js'
+import { ANALYSIS_STATUSES, type AnalysisStatus, type Timestamps } from './enums.js'
 
-export class Analise extends Model<InferAttributes<Analise>, InferCreationAttributes<Analise>> {
+export class Analise extends Model<
+    InferAttributes<Analise, { omit: Timestamps }>,
+    InferCreationAttributes<Analise, {omit: Timestamps}>
+> {
     declare id: CreationOptional<string>
     declare id_usuario: string
     declare status: CreationOptional<AnalysisStatus>
     declare coordenadas: CreationOptional<Ponto | null>
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+    declare createdAt: Date
+    declare updatedAt: Date
     declare deletedAt: Date | null
 
     // associações (preenchidas só quando usadas no include)
@@ -47,22 +50,13 @@ Analise.init(
         },
         status: {
             type: DataTypes.ENUM(...ANALYSIS_STATUSES),
-            defaultValue: 'pendente',
+            defaultValue: 'em_espera',
             allowNull: false
         },
         coordenadas: {
             type: DataTypes.GEOGRAPHY('POINT', 4326),
             allowNull: true
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        deletedAt: DataTypes.DATE
+        }
     },
     {
         sequelize: connection,

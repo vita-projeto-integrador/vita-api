@@ -9,9 +9,12 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
-import { CLASSIFICATION_CLASSES, type ClassificationClass } from './enums.js'
+import { CLASSIFICATION_CLASSES, type ClassificationClass, type Timestamps } from './enums.js'
 
-export class Classificacao extends Model<InferAttributes<Classificacao>, InferCreationAttributes<Classificacao>> {
+export class Classificacao extends Model<
+    InferAttributes<Classificacao, { omit: Timestamps }>,
+    InferCreationAttributes<Classificacao, { omit: Timestamps }>
+> {
     declare id: CreationOptional<string>
     declare id_analise: string
     declare tempo_execucao: number
@@ -19,8 +22,8 @@ export class Classificacao extends Model<InferAttributes<Classificacao>, InferCr
     declare confianca: number
     declare modelo_cnn: string
     declare versao_modelo: string
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+    declare createdAt: Date
+    declare updatedAt: Date
     declare deletedAt: Date | null
 
     // associações (preenchidas só quando usadas no include)
@@ -45,6 +48,7 @@ Classificacao.init(
         },
         tempo_execucao: {
             type: DataTypes.INTEGER,
+            validate: { min: 0 },
             allowNull: false
         },
         classe: {
@@ -53,6 +57,7 @@ Classificacao.init(
         },
         confianca: {
             type: DataTypes.DOUBLE,
+            validate: { min: 0, max: 1 },
             allowNull: false
         },
         modelo_cnn: {
@@ -62,16 +67,7 @@ Classificacao.init(
         versao_modelo: {
             type: DataTypes.STRING(50),
             allowNull: false
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        deletedAt: DataTypes.DATE
+        }
     },
     {
         sequelize: connection,

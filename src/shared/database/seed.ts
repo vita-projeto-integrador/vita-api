@@ -16,7 +16,7 @@ async function main() {
                     email: 'produtor@vita.dev',
                     senha_hash,
                     perfil: 'produtor',
-                    cnpj: '00.000.000/0001-00'
+                    cnpj: '00000000000100'
                 },
                 {
                     nome: 'Estudante Exemplo',

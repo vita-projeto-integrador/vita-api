@@ -12,3 +12,6 @@ export type ClassificationClass = (typeof CLASSIFICATION_CLASSES)[number]
 
 // imagem.tipo_mime / processada.tipo_mime
 export { ALL_FILE_FORMATS, type FileFormat } from "../config/formats.config.js"
+
+// timestamps
+export type Timestamps = 'createdAt' | 'updatedAt' | 'deletedAt'

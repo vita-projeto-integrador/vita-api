@@ -9,9 +9,12 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
-import { USER_PROFILES, type UserProfile } from './enums.js'
+import { USER_PROFILES, type UserProfile, type Timestamps } from './enums.js'
 
-export class Usuario extends Model<InferAttributes<Usuario>, InferCreationAttributes<Usuario>> {
+export class Usuario extends Model<
+    InferAttributes<Usuario, { omit: Timestamps }>,
+    InferCreationAttributes<Usuario, { omit: Timestamps }>
+> {
     declare id: CreationOptional<string>
     declare nome: string
     declare email: string
@@ -25,8 +28,8 @@ export class Usuario extends Model<InferAttributes<Usuario>, InferCreationAttrib
     declare faculdade: string | null
     declare curso: string | null
     declare foto_perfil: string | null
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+    declare createdAt: Date
+    declare updatedAt: Date
     declare deletedAt: Date | null
 
     // associações (preenchidas só quando usadas no include)
@@ -46,6 +49,7 @@ Usuario.init(
         },
         email: {
             type: DataTypes.STRING(250),
+            validate: { isLowercase: true },
             allowNull: false
         },
         senha_hash: {
@@ -53,7 +57,8 @@ Usuario.init(
             allowNull: false
         },
         telefone: {
-            type: DataTypes.STRING(15)
+            type: DataTypes.STRING(15),
+            validate: { is: /^[0-9]{10,15}$/ }
         },
         data_nascimento: {
             type: DataTypes.DATEONLY
@@ -68,10 +73,12 @@ Usuario.init(
         },
         cpf: {
             type: DataTypes.STRING(11),
+            validate: { is: /^[0-9]{11}$/ },
             allowNull: true
         },
         cnpj: {
             type: DataTypes.STRING(14),
+            validate: { is: /^[0-9]{14}$/ },
             allowNull: true
         },
         faculdade: {
@@ -83,16 +90,7 @@ Usuario.init(
         foto_perfil: {
             type: DataTypes.STRING(2048),
             allowNull: true
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        deletedAt: DataTypes.DATE
+        }
     },
     {
         sequelize: connection,

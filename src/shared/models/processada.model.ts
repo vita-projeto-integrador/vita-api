@@ -10,17 +10,20 @@ import {
 import connection from '../config/sequelize.config.js'
 import type { Imagem } from './imagem.model.js'
 import type { Ponto } from '../types/model.types.js'
-import { ALL_FILE_FORMATS, type FileFormat } from './enums.js'
+import { ALL_FILE_FORMATS, type FileFormat, type Timestamps } from './enums.js'
 
-export class Processada extends Model<InferAttributes<Processada>, InferCreationAttributes<Processada>> {
+export class Processada extends Model<
+    InferAttributes<Processada, { omit: Timestamps }>,
+    InferCreationAttributes<Processada, { omit: Timestamps }>
+> {
     declare id: CreationOptional<string>
     declare id_imagem: string
     declare nome: string
     declare caminho: string
     declare tipo_mime: FileFormat
     declare tamanho: number
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+    declare createdAt: Date
+    declare updatedAt: Date
     declare deletedAt: Date | null
 
     // associações (preenchidas só quando usadas no include)
@@ -62,16 +65,7 @@ Processada.init(
             validate: {
                 min: 1
             }
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-        },
-        deletedAt: DataTypes.DATE
+        }
     },
     {
         sequelize: connection,
