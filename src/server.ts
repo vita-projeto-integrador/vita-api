@@ -1,10 +1,12 @@
 import app from './app.js'
 import { Server } from 'node:http'
 import { initDatabase } from './shared/database/init-database.js'
+import { closeDatabase } from './shared/database/close-database.js'
 import { startMainClient } from './shared/database/init-redis.js'
 import { getDbErrorMessage } from './shared/errors/db-error.js'
 import { env } from './shared/config/env.config.js'
 import { initStorage } from './shared/storage/init-storage.js'
+import { startJobs, stopJobs } from './jobs.js'
 
 const PORT: number = env.app.port
 
@@ -23,9 +25,10 @@ async function startServer(): Promise<void> {
         console.error(`>> [Boot] Falha ao preparar storage: ${error}`)
         process.exit(1)
     }
-    // start redis
+    // start redis + filas + workers
     try {
-        await startMainClient()
+        startMainClient()
+        startJobs()
     } catch (error) {
         console.error(`>> [Boot] Falha ao conectar no Redis: ${error}`)
     }
@@ -57,8 +60,10 @@ async function startServer(): Promise<void> {
         // ctrl+c, encerramento de container/processo
         const gracefulShutdown = (signal: string) => {
             console.log(`>> [Node] Sinal ${signal} recebido. Encerrando servidor...`)
-            server.close(() => {
+            server.close(async () => {
                 console.log('>> [Node] Servidor encerrado corretamente')
+                await stopJobs()
+                await closeDatabase()
                 process.exit(0);
             })
         }

@@ -8,7 +8,7 @@ import { StorageError } from '../errors/storage-error.js'
 */
 
 // variações de uma imagem 
-export const IMAGE_VARIANTS = ['original', 'processada', 'miniatura'] as const
+export const IMAGE_VARIANTS = ['original', 'processed', 'miniature'] as const
 export type ImageVariant = (typeof IMAGE_VARIANTS)[number]
 
 // restrições
