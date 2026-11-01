@@ -81,55 +81,38 @@ const CourseSchema = z
     .trim()
     .or(z.literal(""))
 
-// usa valores da política de upload para fotos de perfil
-const FileSize = profilePhotoPolicy.limits?.fileSize || (5 * MB)
-const FileTypes: string[] = profilePhotoPolicy.formats.map(formatToMime) || ['image/png', 'image/jpeg', 'image/webp']
-
-const ProfilePhotoSchema = z
-    .custom<File>((val) => val instanceof File)
-    .refine((file) => file.size <= FileSize, {
-        message: `Tamanho máximo de 5 MB`,
-    })
-    .refine((file) => FileTypes.includes(file.type), {
-        message: 'Apenas formatos .jpg, .jpeg, .png e .webp são aceitos',
-    })
-
 // validações para operações com usuários
-const UserIdParamSchema = z.object({
-    id: z.uuid('ID inválido')
-});
+const UserIdParamSchema = z.uuid('ID inválido')
 
 const SignUpBodySchema = z.object({
-    name: NameSchema,
+    nome: NameSchema,
     email: EmailSchema,
-    password: PasswordSchema,
-    phone: PhoneSchema,
-    address: AddressSchema.nullable(),
-    birthDate: BirthDateSchema.nullable(),
-    cnpj: CnpjSchema.nullable(),
-    profile: ProfileSchema.nullable(),
-    school: SchoolSchema.nullable(),
-    course: CourseSchema.nullable(),
-    profilePhoto: ProfilePhotoSchema.nullable()
+    senha: PasswordSchema,
+    telefone: PhoneSchema.nullish(),
+    endereco: AddressSchema.nullish(),
+    data_nascimento: BirthDateSchema.nullish(),
+    cnpj: CnpjSchema.nullish(),
+    perfil: ProfileSchema.optional(),
+    faculdade: SchoolSchema.nullish(),
+    curso: CourseSchema.nullish(),
 })
 
 const LoginBodySchema = z.object({
     email: EmailSchema,
-    password: PasswordSchema
+    senha: PasswordSchema
 })
 
 const UpdateMeBodySchema = z.object({
-    name: NameSchema,
-    password: PasswordSchema,
-    phone: PhoneSchema,
-    address: AddressSchema.nullable(),
-    birthDate: BirthDateSchema.nullable(),
+    nome: NameSchema,
+    senha: PasswordSchema,
+    telefone: PhoneSchema,
+    endereco: AddressSchema.nullable(),
+    data_nascimento: BirthDateSchema.nullable(),
     cnpj: CnpjSchema.nullable(),
-    profile: ProfileSchema.nullable(),
-    school: SchoolSchema.nullable(),
-    course: CourseSchema.nullable(),
-    profilePhoto: ProfilePhotoSchema.nullable()
-}).refine((data) => Object.keys(data).length > 0, {
+    perfil: ProfileSchema.optional(),
+    faculdade: SchoolSchema.nullable(),
+    curso: CourseSchema.nullable(),
+}).partial().refine((data) => Object.keys(data).length > 0, {
     message: 'Informe ao menos um campo para atualizar',
 });
 

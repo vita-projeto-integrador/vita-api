@@ -1,8 +1,10 @@
-import { Request, Response, NextFunction, ErrorRequestHandler } from 'express'
+import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express'
 import AppError from '../errors/app-error.js'
 import { mapHttpError } from '../errors/http-error.js'
 import type { ErrorResponse } from '../types/http.types.js'
 import { mapStorageError } from '../errors/storage-error.js'
+import { mapZodError } from '../errors/zod-error.js'
+import { mapSequelizeError } from '../errors/sequelize-error.js'
 
 export const errorHandler: ErrorRequestHandler = (
     err: unknown,
@@ -16,7 +18,9 @@ export const errorHandler: ErrorRequestHandler = (
         return
     }
     // se for erro de biblioteca, traduz pra AppError
-    const appError = err instanceof AppError ? err : (mapHttpError(err) ?? mapStorageError(err))
+    const appError = err instanceof AppError
+        ? err
+        : (mapZodError(err) ?? mapSequelizeError(err) ?? mapHttpError(err) ?? mapStorageError(err))
     // erros esperados
     if (appError) {
         if (appError.statusCode >= 500) {
@@ -27,7 +31,8 @@ export const errorHandler: ErrorRequestHandler = (
         res.status(appError.statusCode).json({
             success: false,
             message: appError.message,
-            detail: appError.detail
+            detail: appError.detail,
+            errors: appError.errors
         } satisfies ErrorResponse)
         return
     }

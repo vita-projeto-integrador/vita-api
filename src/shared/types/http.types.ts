@@ -13,6 +13,7 @@ interface ErrorResponse {
     success: false
     message: string
     detail?: ErrorDetail
+    errors?: FieldError[]
 }
 
 type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse
@@ -23,6 +24,11 @@ interface PaginatedData<T> {
     total: number
     page: number
     limit: number
+}
+
+export interface FieldError {
+    field: string | null   // null = erro no objeto inteiro (ex.: refine na raiz)
+    message: string
 }
 
 export { ApiResponse, PaginatedData, SuccessResponse, ErrorResponse, ErrorDetail }

@@ -18,3 +18,5 @@ export interface UploadPolicyConfig {
     formats: ImageFormat[],
     limits: Options['limits'],
 }
+
+export type MulterFile = Express.Multer.File

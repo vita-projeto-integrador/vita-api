@@ -6,9 +6,15 @@ import type { TokenPayload } from "./token.types.ts"
 declare global {
     namespace Express {
         interface Request {
-            // userId?: string
-            // userRole?: 'admin' | 'user'
-            user?: TokenPayload
+            // dados do usuário autenticado
+            user?: TokenPayload;
+            // requisições validadas pelos schemas zod
+            validated?: {
+                body?: unknown;
+                query?: unknown;
+                params?: unknown;
+                files?: unknown;
+            };
         }
     }
 }

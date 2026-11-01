@@ -32,6 +32,8 @@ export function createMulterHandler(config: UploadPolicyConfig): RequestHandler 
             if (!Array.isArray(req.files) || req.files.length === 0) {
                 return next(new AppError(400, `Nenhum arquivo enviado no campo ${field}`))
             }
+
+            req.validated = { ...req.validated, files: req.files }
             next()
         })
     }

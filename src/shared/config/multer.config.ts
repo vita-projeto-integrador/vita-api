@@ -15,8 +15,8 @@ const analysisPolicy: UploadPolicyConfig = {
 }
 
 const profilePhotoPolicy: UploadPolicyConfig = {
-    name: 'analysisPolicy',
-    field: 'images',
+    name: 'profilePhotoPolicy',
+    field: 'photo',
     formats: ['png', 'webp', 'jpeg'],
     limits: {
         fileSize: 5 * MB,

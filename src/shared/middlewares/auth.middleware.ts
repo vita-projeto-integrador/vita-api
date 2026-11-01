@@ -4,7 +4,7 @@ import { verifyToken } from '../utils/jwt.js';
 import { Usuario } from '../models/usuario.model.js'
 import type { TokenPayload } from '../types/token.types.js';
 
-export async function authMiddleware(
+export async function authenticate(
     request: Request,
     _response: Response,
     next: NextFunction,
