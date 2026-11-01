@@ -27,6 +27,8 @@ const ERROR_MESSAGES: Partial<Record<string, string>> = {
     '57P01': 'Conexão encerrada pelo administrador do banco',          // admin_shutdown
     '57014': 'Consulta cancelada por timeout',                         // query_canceled
 
+    '42P01': 'Tabela não encontrada: rode pnpm db:fresh',             // undefined_table
+
     // rede
     ECONNREFUSED: 'Serviço do Postgres indisponível nesse endereço/porta',
     ENOTFOUND: 'Não foi possível resolver o nome do servidor',

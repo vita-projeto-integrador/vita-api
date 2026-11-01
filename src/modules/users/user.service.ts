@@ -1,4 +1,4 @@
-import { Usuario } from '../../shared/models/index.model.js'
+import { connection, Usuario } from '../../shared/models/index.model.js'
 import AppError from '../../shared/errors/app-error.js'
 import { randomUUID } from 'node:crypto'
 import { hashPassword, comparePassword } from '../../shared/utils/hash.js';
@@ -11,7 +11,9 @@ import type {
 } from './dtos/user.dto.js'
 import type { MulterFile } from '../../shared/types/multer.types.js'
 import { mimeToFormat } from '../../shared/config/formats.config.js'
+import { detectFormat } from '../../shared/image/pipelines.js'
 import { profilePhotoKey } from '../../shared/storage/keys.js'
+
 
 class UserService {
     async create(data: SignUpBodyDTO) {
@@ -116,21 +118,27 @@ class UserService {
     }
 
     async updatePhoto(id: UserIdParamsDTO, file: MulterFile) {
+        // 1. o formato declarado precisa bater com os bytes reais
         const format = mimeToFormat(file.mimetype)
-        if (!format) throw new AppError(415, 'Formato de arquivo inválido')
+        const detected = await detectFormat(file.buffer)
+        if (!format || detected !== format) {
+            throw new AppError(415, 'Formato de arquivo inválido')
+        }
 
-        // 1. garante que o usuário existe antes de qualquer efeito colateral
+        // 2. o usuário precisa existir antes de qualquer efeito colateral
         const user = await Usuario.findByPk(id)
         if (!user) throw new AppError(404, 'Usuário não encontrado')
 
-        // 2. guarda a chave antiga para remoção posterior
         const oldKey = user.foto_perfil
+        const newKey = profilePhotoKey(user.id, format)
 
-        // 3. salva o novo arquivo
-        const newKey = profilePhotoKey(randomUUID(), format)
+        // 3. grava (save atômico: tmp + rename; mesma key = sobrescrita)
         await storage.save(newKey, file.buffer)
 
-        // 4. atualiza o banco; se falhar, desfaz o efeito no storage e relança
+        // mesma extensão: a key não mudou e o banco já aponta para ela
+        if (newKey === oldKey) return { foto_perfil: newKey }
+
+        // 4. a extensão mudou: atualiza o banco; se falhar, remove só o arquivo novo
         try {
             await user.update({ foto_perfil: newKey })
         } catch (error) {
@@ -157,7 +165,9 @@ class UserService {
             throw new AppError(404, 'Usuário não encontrado', { detail: 'Usuário já desativado ou inexistente' })
         }
 
-        await user.destroy()
+        // o cascade-delete exige transação: usuário, análises, imagens,
+        // processadas e classificações são desativados juntos, ou nada muda
+        await connection.transaction((transaction) => user.destroy({ transaction }))
     }
 }
 

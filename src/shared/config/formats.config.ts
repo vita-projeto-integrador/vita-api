@@ -1,4 +1,3 @@
-import { ALL } from "node:dns"
 import type { MimeType } from "../types/multer.types.js"
 
 export const IMAGE_FORMATS = ['jpeg', 'png', 'webp'] as const

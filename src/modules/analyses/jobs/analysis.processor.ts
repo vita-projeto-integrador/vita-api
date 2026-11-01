@@ -16,8 +16,6 @@ interface ProcessedImage {
     key: string;
 }
 
-const processed: ProcessedImage[] = [];
-
 // formato que o preprocess() gera (e default de processadas.tipo_mime)
 const PROCESSED_FORMAT: ImageFormat = 'webp'
 
@@ -45,6 +43,8 @@ export async function processAnalysis(job: Job<AnalysisJobData>): Promise<void> 
 }
 
 async function run(analysisId: string): Promise<void> {
+    const processed: ProcessedImage[] = [];
+    
     const analysis = await Analise.findByPk(analysisId, {
         include: [{ model: Imagem, as: 'imagens', attributes: ['id', 'nome', 'caminho'] }]
     })

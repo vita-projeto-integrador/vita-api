@@ -1,38 +1,108 @@
-# Ambiente local de banco para desenvolvimento do VITA.
-# As variáveis ${...} são lidas automaticamente do .env na mesma pasta.
+# Ambiente de desenvolvimento do VITA
+# A chave "version:" é obsoleta na Compose Specification e foi omitida.
+
+name: vita
 
 services:
-  postgres:
-    # imagem oficial do projeto PostGIS: Postgres + extensão já instalada.
-    # na primeira inicialização, cria o banco DB_NAME e roda CREATE EXTENSION postgis nele.
-    image: postgis/postgis:17-3.5
-    container_name: vita-postgres
-    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # API Node/Express (TypeScript)
+  # ------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      target: development             # development | production
+    init: true                        # PID 1 = tini: repassa SIGTERM e recolhe zumbis
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # sobrescrevem o .env: dentro da rede, os hosts são os NOMES dos serviços
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 8080
+      STORAGE_ROOT: /app/storage
     ports:
-      # exposto só na máquina local (não na rede)
-      - "127.0.0.1:${DB_PORT}:5432"
+      - "${API_HOST_PORT:-8080}:8080"
+    volumes:
+      - storage_data:/app/storage     # imagens das análises e fotos de perfil
+    depends_on:
+      postgres:
+        condition: service_healthy    # initDatabase() encerra o processo se o banco não responder
+      redis:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync                # copia src/ para o container; o tsx watch reinicia
+          path: ./src
+          target: /app/src
+        - action: rebuild             # dependências mudaram: refaz a imagem
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 30s            # tempo para o worker terminar o job ativo
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Postgres + PostGIS
+  # ------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      # na primeira inicialização, cria o banco e roda CREATE EXTENSION postgis nele
+      POSTGRES_DB: ${DB_NAME:?Defina DB_NAME no .env}
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # só na máquina local, nunca na rede
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # scripts de schema disponíveis no container (somente leitura), aplicados manualmente via psql.
-      # NÃO montar uma pasta sobre /docker-entrypoint-initdb.d: isso esconde o script
-      # da imagem que instala o PostGIS.
-      - ./database:/database:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      # -h 127.0.0.1 força TCP: durante a inicialização o servidor temporário
+      # só escuta no socket local, então o check só passa quando o banco está pronto de verdade
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 20s
+    restart: unless-stopped
 
+  # ------------------------------------------------------------------
+  # Redis (backend do BullMQ)
+  # ------------------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"                         # persistência AOF: jobs sobrevivem a reinícios
+      - --maxmemory-policy
+      - noeviction                    # exigido pelo BullMQ: o Redis nunca descarta chaves de jobs
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # pgAdmin (opcional): docker compose --profile tools up -d
+  # ------------------------------------------------------------------
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: vita-pgadmin
-    restart: unless-stopped
+    profiles: [tools]
     environment:
-      # valores padrão usados se as variáveis não existirem no .env
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@vita.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     ports:
@@ -42,7 +112,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:
   pgadmin_data:
+  storage_data:

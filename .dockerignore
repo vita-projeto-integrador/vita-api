@@ -1,0 +1,23 @@
+# dependências e build locais (o container gera os próprios)
+node_modules
+dist
+
+# segredos: nenhum .env entra na imagem
+.env
+.env.*
+!.env.example
+
+# dados de runtime
+storage
+
+# versionamento, editor e documentação
+.git
+.gitignore
+.vscode
+*.md
+
+# arquivos do próprio Docker
+Dockerfile
+compose*.yaml
+docker-compose*.yml
+.dockerignore

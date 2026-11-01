@@ -12,14 +12,26 @@
 		"typescript": "^7.0.2"
 	},
 	"scripts": {
-		"dev": "tsx watch --env-file=.env src/server.ts",
+		"dev": "tsx watch --env-file-if-exists=.env src/server.ts",
 		"build": "tsc",
-		"start": "node --env-file=.env dist/server.js",
-		"compose:up": "docker compose up -d",
-		"compose:down": "docker compose down -v",
-		"db:reset": "tsx --env-file=.env src/shared/database/reset.ts",
-		"db:seed": "tsx --env-file=.env src/shared/database/seed.ts",
-		"db:fresh": "pnpm db:reset && pnpm db:seed"
+		"start": "node --env-file-if-exists=.env dist/server.js",
+		"db:reset": "tsx --env-file-if-exists=.env src/shared/database/reset.ts",
+		"db:seed": "tsx --env-file-if-exists=.env src/shared/database/seed.ts",
+		"db:fresh": "pnpm db:reset && pnpm db:seed",
+		"docker:up": "docker compose up -d",
+		"docker:watch": "docker compose up --watch",
+		"docker:infra": "docker compose up -d postgres redis",
+		"docker:tools": "docker compose --profile tools up -d pgadmin",
+		"docker:down": "docker compose down",
+		"docker:reset": "docker compose down -v",
+		"docker:rebuild": "docker compose up -d --build api",
+		"docker:ps": "docker compose ps",
+		"docker:logs": "docker compose logs -f api",
+		"docker:logs:all": "docker compose logs -f",
+		"docker:sh": "docker compose exec api sh",
+		"docker:db:fresh": "docker compose exec api pnpm db:fresh",
+		"docker:psql": "docker compose exec postgres sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
+		"docker:redis": "docker compose exec redis redis-cli"
 	},
 	"dependencies": {
 		"@types/geojson": "^7946.0.16",
@@ -43,5 +55,6 @@
 		"validator": "^13.15.35",
 		"zod": "^4.6.5"
 	},
-	"type": "module"
+	"type": "module",
+	"packageManager": "pnpm@11.24.0"
 }

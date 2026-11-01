@@ -14,8 +14,6 @@ import type { MulterFile } from '../../shared/types/multer.types.js'
 import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO } from './dtos/analysis.dto.js'
 import type { FileFormat } from '../../shared/config/formats.config.js'
 
-const images: { id: string, file: MulterFile, format: string, key: string }[] = []
-
 // subqueries correlacionadas; "Analise" é o alias que o Sequelize dá à tabela principal (modelName)
 const IMAGES_COUNT_SQL = `(
     SELECT COUNT(*)::int FROM imagens AS img
@@ -30,6 +28,7 @@ const THUMBNAIL_SQL = `(
 class AnalysisService {
     async create(userId: string, files: MulterFile[], data: CreateAnalysisBodyDTO) {
         const analysisId = randomUUID()
+        const images: { id: string, file: MulterFile, format: string, key: string }[] = []
 
         // 1. confere o conteúdo real antes de qualquer efeito colateral
         for (const file of files) {

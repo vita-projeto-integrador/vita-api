@@ -1,9 +1,6 @@
-import { sharp, type Sharp } from 'sharp'
-
+import sharp, { type Sharp } from 'sharp'
 const CNN_SIZE = 224
 const WHITE = { r: 255, g: 255, b: 255 }
-
-const a = sharp
 
 // verifica formato da imagem através dos bytes
 export async function detectFormat(buffer: Buffer): Promise<string | undefined> {
