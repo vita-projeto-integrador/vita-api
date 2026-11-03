@@ -23,7 +23,7 @@ async function retryPush() {
                         mimeType: img.mimeType,
                         size: img.size,
                         location: img.location ?? null,
-    capturedAt: img.capturedAt ?? null
+                        capturedAt: img.capturedAt ?? null
                     }))
                     )
                 }
