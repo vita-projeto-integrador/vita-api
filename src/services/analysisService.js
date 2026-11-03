@@ -33,7 +33,7 @@ class AnalysisService {
         const job = {
             analysisId: analysis.id,
             userId: userId,
-            images: files.map(file => ({
+            images: files.map((file, index) => ({
                 buffer: file.buffer,
                 originalName: file.originalname,
                 mimeType: file.mimetype,
@@ -48,7 +48,7 @@ class AnalysisService {
         } else {
             // se não, salva buffers temporariamente
             const imagesCopy = await Promise.all(
-                files.map(async file => ({
+                files.map(async (file,index) => ({
                     imagePath: await storageService.save(file.buffer, `${analysis.id}`, storageService.extensionFor(file.mimetype)),
                     originalName: file.originalname,
                     mimeType: file.mimetype,
