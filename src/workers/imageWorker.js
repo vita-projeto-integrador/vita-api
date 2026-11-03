@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks'
 import * as services from '../services/index.js'
 import storageService from '../utils/storage/storageService.js'
 import preProcess from '../pipelines/preProcess.js'
+import { toPoint } from '../utils/geo.js'
 
 let imageWorker = null
 let lastErrorCode = null
@@ -59,7 +60,10 @@ function startImageWorker() {
                             tempPath: tempOriginalPath,
                             name: image.originalName,
                             mimeType: image.mimeType,
-                            size: image.size
+                            size: image.size,
+                            size: image.size,
+                            location: image.location ?? null, // jobs antigos não têm esses campos
+                            capturedAt: image.capturedAt ?? null
                         }
                     },
                     processed: {
@@ -97,7 +101,11 @@ function startImageWorker() {
                     nome: imageMeta.name,
                     caminho: originalPath,
                     tipo_mime: imageMeta.mimeType,
-                    tamanho: imageMeta.size
+                    tamanho: imageMeta.size,
+                    // localização da foto (null na galeria ou sem GPS)
+                    coordenadas: imageMeta.location ? toPoint(imageMeta.location) : null,
+                    precisao: imageMeta.location ? imageMeta.location.precisao : null,
+                    capturada_em: imageMeta.capturedAt
                 })
                 const processed = await services.processedService.create({
                     id_imagem: image.id,

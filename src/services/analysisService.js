@@ -7,11 +7,23 @@ import { Analise, Imagem, Classificacao } from '../models/index.js'
 import { getRedisState } from '../config/redisState.js'
 import storageService from '../utils/storage/storageService.js'
 import { fn, col, literal, Op } from 'sequelize'
+import { toPoint, fromPoint, pickAnalysisLocation } from '../utils/geo.js'
+import { STATUS_TO_DB, STATUS_FROM_DB, CLASSE_TO_DB, CLASSE_FROM_DB } from '../utils/contract.js'
+
+// máximo de pontos devolvidos pela rota do mapa
+const MAP_LIMIT = 500
 
 class AnalysisService {
     // cadastra análise 'pendente'
-    async create(userId, files) {
-        const analysis = await Analise.create({ id_usuario: userId })
+    async create(userId, files, metadata) {
+        // local da análise
+        const location = pickAnalysisLocation(metadata.map(item => item.localizacao))
+
+        const analysis = await Analise.create({
+            id_usuario: userId,
+            coordenadas: location ? toPoint(location) : null,
+            precisao: location ? location.precisao : null
+        })
 
         // verifica estado do Redis
         const isRedisAlive = getRedisState()
@@ -25,7 +37,9 @@ class AnalysisService {
                 buffer: file.buffer,
                 originalName: file.originalname,
                 mimeType: file.mimetype,
-                size: file.size
+                size: file.size,
+                location: metadata[index].localizacao,
+                capturedAt: metadata[index].capturadaEm
             }))
         }
         // se Redis está online, dispara fila
@@ -38,7 +52,9 @@ class AnalysisService {
                     imagePath: await storageService.save(file.buffer, `${analysis.id}`, storageService.extensionFor(file.mimetype)),
                     originalName: file.originalname,
                     mimeType: file.mimetype,
-                    size: file.size
+                    size: file.size,
+                    location: metadata[index].localizacao,
+                    capturedAt: metadata[index].capturadaEm
                 }))
             )
             // monta cópia do job
@@ -168,6 +184,8 @@ class AnalysisService {
             attributes: [
                 'id',
                 'status',
+                'coordenadas',
+                'precisao',
                 'createdAt'
             ],
             include: [
@@ -193,7 +211,8 @@ class AnalysisService {
             throw new AppError('Análise não encontrada', 404)
         }
 
-        return analysisDetails
+        const { coordenadas, precisao, ...details } = analysisDetails.toJSON()
+        return { ...details, localizacao: fromPoint(coordenadas, precisao) }
     }
     // consulta análises pendentes
     async getPending() {
@@ -204,6 +223,56 @@ class AnalysisService {
             }
         })
         return pending
+    }
+    // pontos do mapa: análises do usuário que têm localização
+    async getMapItems(userId, filters) {
+        const where = {
+            id_usuario: userId,
+            coordenadas: { [Op.ne]: null } // só análises com localização
+        }
+        if (filters.from && filters.to) {
+            where.createdAt = { [Op.between]: [filters.from, filters.to] }
+        }
+        if (filters.status) {
+            // traduz o status do contrato para os status da API JS
+            where.status = { [Op.in]: filters.status.flatMap(status => STATUS_TO_DB[status]) }
+        }
+
+        const classificacao = {
+            model: Classificacao,
+            as: 'classificacao',
+            attributes: ['classe', 'confianca']
+        }
+        if (filters.classe) {
+            // com 'where', o include vira INNER JOIN: só análises com essa classe
+            classificacao.where = { classe: CLASSE_TO_DB[filters.classe] }
+        }
+
+        const { rows, count } = await Analise.findAndCountAll({
+            attributes: ['id', 'status', 'createdAt', 'coordenadas', 'precisao'],
+            include: [classificacao],
+            where,
+            order: [['createdAt', 'DESC']],
+            limit: MAP_LIMIT,
+            distinct: true // conta análises, não linhas do JOIN
+        })
+
+        // monta cada ponto no formato do contrato
+        const items = rows.map(analysis => {
+            const location = fromPoint(analysis.coordenadas, analysis.precisao)
+            return {
+                id: analysis.id,
+                status: STATUS_FROM_DB[analysis.status],
+                classe: analysis.classificacao ? CLASSE_FROM_DB[analysis.classificacao.classe] : null,
+                confianca: analysis.classificacao ? analysis.classificacao.confianca : null,
+                createdAt: analysis.createdAt,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                precisao: location.precisao
+            }
+        })
+
+        return { items, total: count, page: 1, limit: MAP_LIMIT }
     }
 }
 

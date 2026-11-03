@@ -4,6 +4,8 @@ import classificationService from "../services/classificationService.js"
 import APIResponse from '../utils/apiResponse.js'
 import AppError from '../utils/appError.js'
 import validator from 'validator'
+import { parseMetadata } from '../utils/metadata.js'
+import { STATUS_TO_DB, CLASSE_TO_DB } from '../utils/contract.js'
 
 class AnalysisController {
     // inicia análise de fotos
@@ -12,6 +14,7 @@ class AnalysisController {
             const loggedUser = req.loggedUser
             const userId = loggedUser.id
             const files = req.files
+            const metadata = parseMetadata(req.body?.metadados, files.length)
 
             if (!userId) {
                 throw new AppError('Usuário não autenticado', 401)
@@ -22,7 +25,7 @@ class AnalysisController {
             }
 
             // retorna análise 'pendente', dispara fila de processamento paralela
-            const result = await analysisService.create(userId, files)
+            const result = await analysisService.create(userId, files, metadata)
 
             if (result.queued) {
                 return new APIResponse(res, 'Análise iniciada', 202, result)
@@ -117,6 +120,41 @@ class AnalysisController {
 
             return new APIResponse(res, 'Relatório da Análise gerado com sucesso', 200, result)
 
+        } catch (error) {
+            next(error)
+        }
+    }
+    // pontos do mapa (contrato comum com a API TS)
+    async getMapAnalysis(req, res, next) {
+        try {
+            const userId = req.loggedUser.id
+            const { from, to, status, classe } = req.query
+
+            // período opcional: from e to juntos, em ISO 8601 (igual à listagem)
+            const isValidDate = (value) => typeof value === 'string' && validator.isISO8601(value)
+            if ((from || to) && !(isValidDate(from) && isValidDate(to))) {
+                throw new AppError('Período inválido: envie from e to em ISO 8601', 400)
+            }
+
+            // status opcional: valores do contrato separados por vírgula
+            const statusList = status ? String(status).split(',') : null
+            if (statusList && !statusList.every(item => Object.hasOwn(STATUS_TO_DB, item))) {
+                throw new AppError('Status inválido: use em_espera, processando, finalizada ou falhou', 400)
+            }
+
+            // classe opcional: saudavel ou infectado
+            if (classe && !Object.hasOwn(CLASSE_TO_DB, classe)) {
+                throw new AppError('Classe inválida: use saudavel ou infectado', 400)
+            }
+
+            const result = await analysisService.getMapItems(userId, {
+                from: from ? new Date(from) : null,
+                to: to ? new Date(to) : null,
+                status: statusList,
+                classe: classe || null
+            })
+
+            return new APIResponse(res, 'Análises do mapa', 200, result)
         } catch (error) {
             next(error)
         }

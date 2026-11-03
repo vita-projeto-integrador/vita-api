@@ -7,6 +7,8 @@ const router = express.Router()
 
 router.post('/analysis', Authorization, uploadMiddleware, analysisController.initAnalysis) // inicia análise de imagem
 
+router.get('/analysis/map', Authorization, analysisController.getMapAnalysis) // pontos do mapa
+
 router.get('/polling/analysis/:id', Authorization, analysisController.getPolling) // verifica progresso da análise
 
 router.get('/analysis', Authorization, analysisController.getAllAnalysis) // listagem das análises

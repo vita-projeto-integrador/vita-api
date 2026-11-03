@@ -21,7 +21,9 @@ async function retryPush() {
                         buffer: Buffer.from(await storageService.readFile(img.imagePath)),
                         originalName: img.originalName,
                         mimeType: img.mimeType,
-                        size: img.size
+                        size: img.size,
+                        location: img.location ?? null,
+    capturedAt: img.capturedAt ?? null
                     }))
                     )
                 }
