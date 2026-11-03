@@ -20,6 +20,8 @@ const Analise = connection.define('analises', {
         defaultValue: 'pendente',
         allowNull: false
     },
+    coordenadas: { type: DataTypes.GEOMETRY('POINT') },
+    precisao: { type: DataTypes.FLOAT }
 },
     {
         tableName: 'analises',
