@@ -7,7 +7,8 @@ import { analysisPolicy } from '../../shared/config/multer.config.js'
 import {
     CreateAnalysisBodySchema,
     AnalysisIdParamsSchema,
-    ListAnalysesQuerySchema
+    ListAnalysesQuerySchema,
+    MapQuerySchema
 } from './schemas/analysis.schema.js'
 
 const analysisRoutes = express.Router()
@@ -16,6 +17,7 @@ analysisRoutes.use(authenticate) // seguro: o router é montado sob /analyses
 
 analysisRoutes.post('/', createMulterHandler(analysisPolicy), validateBody(CreateAnalysisBodySchema), AnalysisController.create)
 analysisRoutes.get('/', validateQuery(ListAnalysesQuerySchema), AnalysisController.list)
+analysisRoutes.get('/map', validateQuery(MapQuerySchema), AnalysisController.getMap)
 analysisRoutes.get('/:id', validateParams(AnalysisIdParamsSchema), AnalysisController.getDetails)
 analysisRoutes.get('/:id/status', validateParams(AnalysisIdParamsSchema), AnalysisController.getStatus)
 

@@ -16,12 +16,13 @@ import { ANALYSIS_STATUSES, type AnalysisStatus, type Timestamps } from './enums
 
 export class Analise extends Model<
     InferAttributes<Analise, { omit: Timestamps }>,
-    InferCreationAttributes<Analise, {omit: Timestamps}>
+    InferCreationAttributes<Analise, { omit: Timestamps }>
 > {
     declare id: CreationOptional<string>
     declare id_usuario: string
     declare status: CreationOptional<AnalysisStatus>
     declare coordenadas: CreationOptional<Ponto | null>
+    declare precisao: CreationOptional<number | null>
     declare createdAt: Date
     declare updatedAt: Date
     declare deletedAt: Date | null
@@ -56,6 +57,11 @@ Analise.init(
         coordenadas: {
             type: DataTypes.GEOGRAPHY('POINT', 4326),
             allowNull: true
+        },
+        precisao: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+            validate: { min: 0 }
         }
     },
     {
@@ -64,6 +70,13 @@ Analise.init(
         tableName: 'analises',
         timestamps: true,
         paranoid: true,
+        validate: {
+            localizacaoCompleta(this: Analise) {
+                if ((this.coordenadas == null) !== (this.precisao == null)) {
+                    throw new Error('coordenadas e precisao devem ser informadas juntas')
+                }
+            }
+        },
         indexes: [
             {
                 // índice único de otimização

@@ -6,12 +6,12 @@ import storage from '../../shared/config/storage.config.js'
 import { mimeToFormat } from '../../shared/config/formats.config.js'
 import { detectFormat } from '../../shared/image/pipelines.js'
 import { analysisImageKey } from '../../shared/storage/keys.js'
-import { toPonto, fromPonto } from '../../shared/utils/geo.js'
+import { fromPonto, toPonto, toLocalizacao, pickAnalysisLocation } from '../../shared/utils/geo.js'
 import ImageService from '../images/image.service.js'
 import ClassificationService from '../classifications/classification.service.js'
 import { enqueueAnalysis } from './jobs/analysis.queue.js'
 import type { MulterFile } from '../../shared/types/multer.types.js'
-import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO } from './dtos/analysis.dto.js'
+import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO, MapQueryDTO, MetadadoDTO } from './dtos/analysis.dto.js'
 import type { FileFormat } from '../../shared/config/formats.config.js'
 
 // subqueries correlacionadas; "Analise" é o alias que o Sequelize dá à tabela principal (modelName)
@@ -25,25 +25,40 @@ const THUMBNAIL_SQL = `(
     ORDER BY img.created_at ASC LIMIT 1
 )`
 
+// máximo de pontos devolvidos pela rota do mapa
+const MAP_LIMIT = 500
+
 class AnalysisService {
     async create(userId: string, files: MulterFile[], data: CreateAnalysisBodyDTO) {
         const analysisId = randomUUID()
-        const images: { id: string, file: MulterFile, format: string, key: string }[] = []
+
+        // sem metadados (ex.: envio pelo web), nenhuma foto tem localização
+        const metadados: MetadadoDTO[] = data.metadados ?? files.map(() => ({ capturadaEm: null, localizacao: null }))
+        if (metadados.length !== files.length) {
+            throw new AppError(400, 'Envie um item de metadados por imagem, na mesma ordem')
+        }
+
+        // local da análise: a foto com menor erro de GPS (ou null)
+        const location = pickAnalysisLocation(metadados.map((item) => item.localizacao))
+
+        const images: { id: string, file: MulterFile, format: string, key: string, metadado: MetadadoDTO }[] = []
 
         // 1. confere o conteúdo real antes de qualquer efeito colateral
-        for (const file of files) {
+        for (const [index, file] of files.entries()) {
             const declared = mimeToFormat(file.mimetype)
             const detected = await detectFormat(file.buffer)
             if (!declared || detected !== declared) {
                 throw new AppError(415, 'Formato de arquivo inválido', { detail: file.originalname })
             }
             const id = randomUUID()
-            images.push({ id, file, format: declared, key: analysisImageKey(userId, analysisId, id, 'original', declared) })
+            images.push({
+                id,
+                file,
+                format: declared,
+                key: analysisImageKey(userId, analysisId, id, 'original', declared),
+                metadado: metadados[index] // mesma posição do arquivo
+            })
         }
-
-        const coordenadas = data.latitude !== undefined && data.longitude !== undefined
-            ? toPonto(data.latitude, data.longitude)
-            : null
 
         // 2. storage + banco; se algo falhar, desfaz o que foi salvo
         try {
@@ -51,14 +66,25 @@ class AnalysisService {
                 await storage.save(image.key, image.file.buffer)
             }
             await connection.transaction(async (transaction) => {
-                await Analise.create({ id: analysisId, id_usuario: userId, coordenadas }, { transaction })
-                await ImageService.createMany(images.map(({ id, file, format, key }) => ({
+                await Analise.create({
+                    id: analysisId,
+                    id_usuario: userId,
+                    coordenadas: location ? toPonto(location.latitude, location.longitude) : null,
+                    precisao: location ? location.precisao : null
+                }, { transaction })
+                await ImageService.createMany(images.map(({ id, file, key, metadado }) => ({
                     id,
                     id_analise: analysisId,
                     nome: file.originalname.slice(0, 150), // imagens.nome é STRING(150)
                     caminho: key,
                     tipo_mime: mimeToFormat(file.mimetype) as FileFormat,
-                    tamanho: file.size
+                    tamanho: file.size,
+                    // localização e horário da foto (null na galeria ou sem GPS)
+                    coordenadas: metadado.localizacao
+                        ? toPonto(metadado.localizacao.latitude, metadado.localizacao.longitude)
+                        : null,
+                    precisao: metadado.localizacao ? metadado.localizacao.precisao : null,
+                    capturada_em: metadado.capturadaEm ? new Date(metadado.capturadaEm) : null
                 })), transaction)
             })
         } catch (error) {
@@ -136,7 +162,7 @@ class AnalysisService {
         return {
             id: analysis.id,
             status: analysis.status,
-            coordenadas: fromPonto(analysis.coordenadas),
+            localizacao: toLocalizacao(analysis.coordenadas, analysis.precisao),
             criado_em: analysis.createdAt,
             imagens: (analysis.imagens ?? []).map((imagem) => ({
                 id: imagem.id,
@@ -167,6 +193,52 @@ class AnalysisService {
             classificacao: analysis.classificacao
                 ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
                 : null
+        }
+    }
+
+    async getMap(userId: string, query: MapQueryDTO) {
+        const { from, to, status, classe } = query
+
+        const { rows, count } = await Analise.findAndCountAll({
+            where: {
+                id_usuario: userId,
+                coordenadas: { [Op.ne]: null }, // só análises com localização
+                precisao: { [Op.ne]: null },
+                ...(from && to ? { createdAt: { [Op.between]: [from, to] } } : {}),
+                ...(status ? { status: { [Op.in]: status } } : {})
+            },
+            attributes: ['id', 'status', 'createdAt', 'coordenadas', 'precisao'],
+            include: [{
+                model: Classificacao,
+                as: 'classificacao',
+                attributes: ['classe', 'confianca'],
+                // com where, o include vira INNER JOIN: só análises com essa classe
+                ...(classe ? { where: { classe } } : {})
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: MAP_LIMIT,
+            distinct: true // conta análises, não linhas do JOIN
+        })
+
+        return {
+            // flatMap: devolve [] para pular a linha (o where já garante a localização)
+            items: rows.flatMap((analysis) => {
+                const localizacao = toLocalizacao(analysis.coordenadas, analysis.precisao)
+                if (!localizacao) return []
+                return [{
+                    id: analysis.id,
+                    status: analysis.status,
+                    classe: analysis.classificacao?.classe ?? null,
+                    confianca: analysis.classificacao?.confianca ?? null,
+                    createdAt: analysis.createdAt, // nome do contrato comum com a API JS
+                    latitude: localizacao.latitude,
+                    longitude: localizacao.longitude,
+                    precisao: localizacao.precisao
+                }]
+            }),
+            total: count,
+            page: 1,
+            limit: MAP_LIMIT
         }
     }
 }

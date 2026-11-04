@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt'
 import { connection, Usuario, Analise, Imagem, Processada, Classificacao } from '../models/index.model.js'
 import { guardLocalDatabase } from './guard.js'
+import { toPonto } from '../utils/geo.js'
 
 async function main() {
     guardLocalDatabase()
@@ -9,6 +10,8 @@ async function main() {
 
     // tudo ou nada: se um insert falhar, nada fica gravado
     await connection.transaction(async (transaction) => {
+        const coordenadas = toPonto(-21.6806, -47.3331)
+
         const [produtor] = await Usuario.bulkCreate(
             [
                 {
@@ -31,7 +34,7 @@ async function main() {
         )
 
         const analise = await Analise.create(
-            { id_usuario: produtor.id, status: 'finalizada' },
+            { id_usuario: produtor.id, status: 'finalizada', coordenadas, precisao: 4.8 },
             { transaction }
         )
 
@@ -47,7 +50,9 @@ async function main() {
                     type: 'Point',
                     coordinates: [-47.3331, -21.6806],
                     crs: { type: 'name', properties: { name: 'EPSG:4326' } }
-                }
+                },
+                precisao: 4.8,
+                capturada_em: new Date()
             },
             { transaction }
         )

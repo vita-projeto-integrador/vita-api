@@ -6,7 +6,8 @@ import type { AnalysisStatus } from '../../shared/models/enums.js'
 import type {
     CreateAnalysisBodyDTO,
     AnalysisIdParamsDTO,
-    ListAnalysesQueryDTO
+    ListAnalysesQueryDTO,
+    MapQueryDTO
 } from './dtos/analysis.dto.js'
 
 // Record<AnalysisStatus, ...> obriga a escrever uma mensagem para cada status novo
@@ -57,6 +58,15 @@ class AnalysisController {
         const result = await AnalysisService.getStatus(userId, id)
 
         return AppResponse.send(res, 200, STATUS_MESSAGES[result.status as AnalysisStatus], result)
+    }
+
+    getMap = async (req: Request, res: Response) => {
+        const userId = req.user?.id as string
+        const query = req.validated?.query as MapQueryDTO
+
+        const result = await AnalysisService.getMap(userId, query)
+
+        return AppResponse.send(res, 200, 'Análises do mapa', result)
     }
 }
 

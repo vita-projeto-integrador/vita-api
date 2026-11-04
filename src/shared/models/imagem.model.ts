@@ -24,6 +24,8 @@ export class Imagem extends Model<
     declare coordenadas: CreationOptional<Ponto | null>
     declare tipo_mime: FileFormat
     declare tamanho: number
+    declare precisao: CreationOptional<number | null>
+    declare capturada_em: CreationOptional<Date | null>
     declare createdAt: Date
     declare updatedAt: Date
     declare deletedAt: Date | null
@@ -71,7 +73,16 @@ Imagem.init(
             validate: {
                 min: 1
             }
-        }
+        },
+        precisao: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+            validate: { min: 0 }
+        },
+        capturada_em: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
     },
     {
         sequelize: connection,
@@ -79,6 +90,14 @@ Imagem.init(
         tableName: 'imagens',
         timestamps: true,
         paranoid: true,
+        validate: {
+            // coordenadas e precisão andam juntas (o banco não tem CHECK)
+            localizacaoCompleta(this: Imagem) {
+                if ((this.coordenadas == null) !== (this.precisao == null)) {
+                    throw new Error('coordenadas e precisao devem ser informadas juntas')
+                }
+            }
+        },
         indexes: [
             {
                 // índice único de otimização
