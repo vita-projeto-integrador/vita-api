@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { emptyToUndefined } from '../../../shared/utils/indefinite.js'
+import { fromToSchema, refineFromTo } from '../../../shared/schemas/from-to.schema.js'
+import { paginationSchema } from '../../../shared/schemas/pagination.schema.js'
 import { ANALYSIS_STATUSES, CLASSIFICATION_CLASSES } from '../../../shared/models/enums.js'
 
 /*
@@ -7,6 +9,15 @@ import { ANALYSIS_STATUSES, CLASSIFICATION_CLASSES } from '../../../shared/model
     Validações para campos comuns
 ======================================
 */
+
+const StatusSchema = z
+    .string()
+    .transform((value) => value.split(','))
+    .pipe(z.array(z.enum(ANALYSIS_STATUSES)))
+    .optional()
+
+const ClassSchema = z.enum(CLASSIFICATION_CLASSES).optional()
+
 // localização de uma foto (GPS)
 const LocationSchema = z
     .object({
@@ -58,41 +69,15 @@ const CreateAnalysisBodySchema = z.object({ metadados: MetadataSchema })
 
 const AnalysisIdParamsSchema = z.uuid('ID inválido')
 
-const ListAnalysesQuerySchema = z
-    .object({
-        page: z.coerce.number().int().min(1).default(1),
-        limit: z.coerce.number().int().min(1).max(50).default(20),
-        from: z.coerce.date().optional(),
-        to: z.coerce.date().optional()
-    })
-    .refine((query) => (query.from === undefined) === (query.to === undefined), {
-        message: 'Envie from e to juntos',
-        path: ['from']
-    })
-    .refine((query) => !query.from || !query.to || query.from <= query.to, {
-        message: 'from deve ser anterior a to',
-        path: ['from']
-    })
+const ListAnalysesQuerySchema = paginationSchema
+    .extend(fromToSchema.shape)
+    .superRefine(refineFromTo)
 
-const MapQuerySchema = z
-    .object({
-        from: z.coerce.date().optional(),
-        to: z.coerce.date().optional(),
-        // "em_espera,processando" -> ['em_espera', 'processando']
-        status: z
-            .string()
-            .transform((value) => value.split(','))
-            .pipe(z.array(z.enum(ANALYSIS_STATUSES)))
-            .optional(),
-        classe: z.enum(CLASSIFICATION_CLASSES).optional()
+const MapQuerySchema = fromToSchema
+    .extend({
+        status: StatusSchema,
+        classe: ClassSchema
     })
-    .refine((query) => (query.from === undefined) === (query.to === undefined), {
-        message: 'Envie from e to juntos',
-        path: ['from']
-    })
-    .refine((query) => !query.from || !query.to || query.from <= query.to, {
-        message: 'from deve ser anterior a to',
-        path: ['from']
-    })
+    .superRefine(refineFromTo)
 
 export { CreateAnalysisBodySchema, AnalysisIdParamsSchema, ListAnalysesQuerySchema, MapQuerySchema }

@@ -16,7 +16,7 @@ interface ProcessedImage {
     key: string;
 }
 
-// formato que o preprocess() gera (e default de processadas.tipo_mime)
+// formato default de imagens pré-processadas
 const PROCESSED_FORMAT: ImageFormat = 'webp'
 
 // códigos de StorageError que não mudam numa nova tentativa
