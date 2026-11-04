@@ -13,7 +13,7 @@ import {
 
 const analysisRoutes = express.Router()
 
-analysisRoutes.use(authenticate) // seguro: o router é montado sob /analyses
+analysisRoutes.use(authenticate)
 
 analysisRoutes.post('/', createMulterHandler(analysisPolicy), validateBody(CreateAnalysisBodySchema), AnalysisController.create)
 analysisRoutes.get('/', validateQuery(ListAnalysesQuerySchema), AnalysisController.list)

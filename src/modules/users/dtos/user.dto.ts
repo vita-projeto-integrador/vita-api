@@ -6,12 +6,16 @@ import type {
     UserIdParamSchema
 } from '../schemas/user.schema.js';
 
-// tipagens das entradas do módulo de usuários inferidas dos schemas de validação zod
+/*
+======================================
+    Tipagens para entradas do módulo de usuários
+======================================
+*/
 
-export type SignUpBodyDTO = z.infer<typeof SignUpBodySchema>;
+export type SignUpBodyDTO = z.infer<typeof SignUpBodySchema>
 
-export type LoginBodyDTO = z.infer<typeof LoginBodySchema>;
+export type LoginBodyDTO = z.infer<typeof LoginBodySchema>
 
-export type UserIdParamsDTO = z.infer<typeof UserIdParamSchema>;
+export type UserIdParamsDTO = z.infer<typeof UserIdParamSchema>
 
-export type UpdateMeBodyDTO = z.infer<typeof UpdateMeBodySchema>;
+export type UpdateMeBodyDTO = z.infer<typeof UpdateMeBodySchema>

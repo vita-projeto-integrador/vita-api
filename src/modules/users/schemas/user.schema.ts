@@ -5,7 +5,11 @@ import { profilePhotoPolicy } from '../../../shared/config/multer.config.js';
 import { formatToMime } from '../../../shared/config/formats.config.js';
 import { USER_PROFILES } from '../../../shared/models/enums.js'
 
-// validações para campos comuns
+/*
+======================================
+    Validações para campos comuns
+======================================
+*/
 const NameSchema = z
     .string({
         error: 'Nome inválido'
@@ -81,7 +85,11 @@ const CourseSchema = z
     .trim()
     .or(z.literal(""))
 
-// validações para operações com usuários
+/*
+======================================
+    Validações para operações
+======================================
+*/
 const UserIdParamSchema = z.uuid('ID inválido')
 
 const SignUpBodySchema = z.object({

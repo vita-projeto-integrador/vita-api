@@ -20,7 +20,7 @@ const STATUS_MESSAGES: Record<AnalysisStatus, string> = {
 
 class AnalysisController {
     create = async (req: Request, res: Response) => {
-        const userId = req.user?.id as string // garantido pelo authenticate
+        const userId = req.user?.id as string
         const files = req.validated?.files as MulterFile[]
         const data = req.validated?.body as CreateAnalysisBodyDTO
 
@@ -44,7 +44,7 @@ class AnalysisController {
 
     getDetails = async (req: Request, res: Response) => {
         const userId = req.user?.id as string
-        const { id } = req.validated?.params as AnalysisIdParamsDTO
+        const id = req.validated?.params as AnalysisIdParamsDTO
 
         const result = await AnalysisService.getDetails(userId, id)
 
@@ -53,7 +53,7 @@ class AnalysisController {
 
     getStatus = async (req: Request, res: Response) => {
         const userId = req.user?.id as string
-        const { id } = req.validated?.params as AnalysisIdParamsDTO
+        const id = req.validated?.params as AnalysisIdParamsDTO
 
         const result = await AnalysisService.getStatus(userId, id)
 

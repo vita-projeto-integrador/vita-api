@@ -6,7 +6,7 @@ import storage from '../../shared/config/storage.config.js'
 import { mimeToFormat } from '../../shared/config/formats.config.js'
 import { detectFormat } from '../../shared/image/pipelines.js'
 import { analysisImageKey } from '../../shared/storage/keys.js'
-import { fromPonto, toPonto, toLocalizacao, pickAnalysisLocation } from '../../shared/utils/geo.js'
+import { toPonto, toLocalizacao, pickAnalysisLocation } from '../../shared/utils/geo.js'
 import ImageService from '../images/image.service.js'
 import ClassificationService from '../classifications/classification.service.js'
 import { enqueueAnalysis } from './jobs/analysis.queue.js'
@@ -14,11 +14,18 @@ import type { MulterFile } from '../../shared/types/multer.types.js'
 import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO, MapQueryDTO, MetadadoDTO } from './dtos/analysis.dto.js'
 import type { FileFormat } from '../../shared/config/formats.config.js'
 
-// subqueries correlacionadas; "Analise" é o alias que o Sequelize dá à tabela principal (modelName)
+/*
+======================================
+    Subqueries ("Analise" = alias Sequelize)
+======================================
+*/
+
+// conta total de imagens
 const IMAGES_COUNT_SQL = `(
     SELECT COUNT(*)::int FROM imagens AS img
     WHERE img.id_analise = "Analise"."id" AND img.deleted_at IS NULL
 )`
+// busca as thumbnails das imagens das análises
 const THUMBNAIL_SQL = `(
     SELECT img.caminho FROM imagens AS img
     WHERE img.id_analise = "Analise"."id" AND img.deleted_at IS NULL
@@ -32,7 +39,7 @@ class AnalysisService {
     async create(userId: string, files: MulterFile[], data: CreateAnalysisBodyDTO) {
         const analysisId = randomUUID()
 
-        // sem metadados (ex.: envio pelo web), nenhuma foto tem localização
+        // sem metadados (web/galeria) -> sem localização
         const metadados: MetadadoDTO[] = data.metadados ?? files.map(() => ({ capturadaEm: null, localizacao: null }))
         if (metadados.length !== files.length) {
             throw new AppError(400, 'Envie um item de metadados por imagem, na mesma ordem')
@@ -43,7 +50,7 @@ class AnalysisService {
 
         const images: { id: string, file: MulterFile, format: string, key: string, metadado: MetadadoDTO }[] = []
 
-        // 1. confere o conteúdo real antes de qualquer efeito colateral
+        // confere conteúdo real e insere em images[]
         for (const [index, file] of files.entries()) {
             const declared = mimeToFormat(file.mimetype)
             const detected = await detectFormat(file.buffer)
@@ -60,7 +67,7 @@ class AnalysisService {
             })
         }
 
-        // 2. storage + banco; se algo falhar, desfaz o que foi salvo
+        // storage + banco (se falhar, desfaz)
         try {
             for (const image of images) {
                 await storage.save(image.key, image.file.buffer)
@@ -75,7 +82,7 @@ class AnalysisService {
                 await ImageService.createMany(images.map(({ id, file, key, metadado }) => ({
                     id,
                     id_analise: analysisId,
-                    nome: file.originalname.slice(0, 150), // imagens.nome é STRING(150)
+                    nome: file.originalname.slice(0, 150), // STRING(150)
                     caminho: key,
                     tipo_mime: mimeToFormat(file.mimetype) as FileFormat,
                     tamanho: file.size,
@@ -94,7 +101,7 @@ class AnalysisService {
             throw error
         }
 
-        // 3. enfileira; se o Redis estiver fora, o requeue cuida depois
+        // enfileira; se Redis estiver offline faz requeue
         const queued = await enqueueAnalysis(analysisId)
 
         return { id: analysisId, status: 'em_espera' as const, queued }

@@ -1,24 +1,39 @@
 import { z } from 'zod'
+import { emptyToUndefined } from '../../../shared/utils/indefinite.js'
 import { ANALYSIS_STATUSES, CLASSIFICATION_CLASSES } from '../../../shared/models/enums.js'
 
-// multipart envia campo vazio como ""; tratamos como campo ausente
-const emptyToUndefined = (value: unknown) => (value === '' ? undefined : value)
+/*
+======================================
+    Validações para campos comuns
+======================================
+*/
+// localização de uma foto (GPS)
+const LocationSchema = z
+    .object({
+        latitude: z
+            .number()
+            .min(-90)
+            .max(90),
+        longitude: z
+            .number()
+            .min(-180)
+            .max(180),
+        // raio de erro em metros
+        precisao: z.
+            number().
+            nonnegative()
+    })
 
-// localização de uma foto (vinda do GPS do celular)
-const LocalizacaoSchema = z.object({
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
-    precisao: z.number().nonnegative() // raio de erro em metros
-})
+// metadados
+const MetaSchema = z
+    .object({
+        capturadaEm: z
+            .iso.datetime({ offset: true }).nullable(), // null na galeria
+        localizacao: LocationSchema.nullable() // null na galeria ou sem GPS
+    })
 
-// dados de uma foto, na mesma posição do arquivo em 'images'
-const MetadadoSchema = z.object({
-    capturadaEm: z.iso.datetime({ offset: true }).nullable(), // null na galeria
-    localizacao: LocalizacaoSchema.nullable() // null na galeria ou sem GPS
-})
-
-// 'metadados' chega como texto no multipart: vira JSON e depois é validado
-const MetadadosSchema = z.preprocess(
+// metadados em JSON (chega como texto no multipart)
+const MetadataSchema = z.preprocess(
     emptyToUndefined,
     z
         .string()
@@ -30,13 +45,18 @@ const MetadadosSchema = z.preprocess(
                 return z.NEVER
             }
         })
-        .pipe(z.array(MetadadoSchema).min(1).max(4))
+        .pipe(z.array(MetaSchema).min(1).max(4))
         .optional()
 )
 
-const CreateAnalysisBodySchema = z.object({ metadados: MetadadosSchema })
+/*
+======================================
+    Validações para operações
+======================================
+*/
+const CreateAnalysisBodySchema = z.object({ metadados: MetadataSchema })
 
-const AnalysisIdParamsSchema = z.object({ id: z.uuid('ID inválido') })
+const AnalysisIdParamsSchema = z.uuid('ID inválido')
 
 const ListAnalysesQuerySchema = z
     .object({
@@ -54,7 +74,6 @@ const ListAnalysesQuerySchema = z
         path: ['from']
     })
 
-// filtros da rota do mapa (todos opcionais)
 const MapQuerySchema = z
     .object({
         from: z.coerce.date().optional(),
