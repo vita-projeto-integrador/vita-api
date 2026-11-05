@@ -17,14 +17,17 @@ class ClassificationService {
     }
 
     async create(analysisId: string, result: ClassificationResult, transaction: Transaction) {
-        return Classificacao.create({
-            id_analise: analysisId,
-            classe: result.classe,
-            confianca: result.confianca,
-            tempo_execucao: result.tempoMs,
-            modelo_cnn: result.modelo,
-            versao_modelo: result.versao
-        }, { transaction })
+        return Classificacao.create(
+            {
+                id_analise: analysisId,
+                classe: result.classe,
+                confianca: result.confianca,
+                tempo_execucao: result.tempoMs,
+                modelo_cnn: result.modelo,
+                versao_modelo: result.versao,
+            },
+            { transaction },
+        )
     }
 
     // formato público da classificação, reutilizado pelo relatório da análise
@@ -35,7 +38,7 @@ class ClassificationService {
             tempo_execucao: classificacao.tempo_execucao,
             modelo_cnn: classificacao.modelo_cnn,
             versao_modelo: classificacao.versao_modelo,
-            criado_em: classificacao.createdAt
+            criado_em: classificacao.createdAt,
         }
     }
 }

@@ -1,8 +1,8 @@
-import connection from "../../shared/config/sequelize.config.js"
-import storage from "../../shared/config/storage.config.js"
-import { getMainClient } from "../../shared/database/init-redis.js"
-import { withTimeout } from "../../shared/utils/with-timeout.js"
-import { getDbErrorMessage } from "../../shared/errors/db-error.js"
+import connection from '../../shared/config/sequelize.config.js'
+import storage from '../../shared/config/storage.config.js'
+import { getMainClient } from '../../shared/database/init-redis.js'
+import { withTimeout } from '../../shared/utils/with-timeout.js'
+import { getDbErrorMessage } from '../../shared/errors/db-error.js'
 
 class HealthService {
     public async checkDatabase(): Promise<boolean> {
@@ -23,7 +23,7 @@ class HealthService {
 
             // cliente geral não conectado
             if (mainClient?.status !== 'ready') return false
-            
+
             // confirma com comando PING
             const reply = await withTimeout(mainClient.ping(), 1000) // evita PING pendurado por config padrão do IORedis
             return reply === 'PONG'

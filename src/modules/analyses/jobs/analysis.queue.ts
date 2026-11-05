@@ -23,8 +23,8 @@ export function startAnalysisQueue(): Queue<AnalysisJobData> {
             attempts: 3,
             backoff: { type: 'exponential', delay: 3000 }, // número, não string
             removeOnComplete: 50,
-            removeOnFail: 20
-        }
+            removeOnFail: 20,
+        },
     })
 
     // a cada (re)conexão, recupera análises que ficaram sem job
@@ -55,11 +55,13 @@ async function requeuePendingAnalyses(): Promise<void> {
     const pending = await Analise.findAll({ where: { status: 'em_espera' }, attributes: ['id'] })
     if (pending.length === 0) return
 
-    await startAnalysisQueue().addBulk(pending.map(({ id }) => ({
-        name: JOB_NAME,
-        data: { analysisId: id },
-        opts: { jobId: id }
-    })))
+    await startAnalysisQueue().addBulk(
+        pending.map(({ id }) => ({
+            name: JOB_NAME,
+            data: { analysisId: id },
+            opts: { jobId: id },
+        })),
+    )
     console.log(`>> [BullMQ] ${pending.length} análise(s) re-enfileirada(s)`)
 }
 

@@ -19,29 +19,18 @@ const StatusSchema = z
 const ClassSchema = z.enum(CLASSIFICATION_CLASSES).optional()
 
 // localização de uma foto (GPS)
-const LocationSchema = z
-    .object({
-        latitude: z
-            .number()
-            .min(-90)
-            .max(90),
-        longitude: z
-            .number()
-            .min(-180)
-            .max(180),
-        // raio de erro em metros
-        precisao: z.
-            number().
-            nonnegative()
-    })
+const LocationSchema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    // raio de erro em metros
+    precisao: z.number().nonnegative(),
+})
 
 // metadados
-const MetaSchema = z
-    .object({
-        capturada_em: z
-            .iso.datetime({ offset: true, error: 'capturada_em deve ser data ISO com fuso ou null' }).nullable(), // null na galeria
-        localizacao: LocationSchema.nullable() // null na galeria ou sem GPS
-    })
+const MetaSchema = z.object({
+    capturada_em: z.iso.datetime({ offset: true, error: 'capturada_em deve ser data ISO com fuso ou null' }).nullable(), // null na galeria
+    localizacao: LocationSchema.nullable(), // null na galeria ou sem GPS
+})
 
 // metadados em JSON (chega como texto no multipart)
 const MetadataSchema = z.preprocess(
@@ -57,7 +46,7 @@ const MetadataSchema = z.preprocess(
             }
         })
         .pipe(z.array(MetaSchema).min(1).max(4))
-        .optional()
+        .optional(),
 )
 
 /*
@@ -68,22 +57,19 @@ const MetadataSchema = z.preprocess(
 const CreateAnalysisBodySchema = z.strictObject(
     { metadata: MetadataSchema },
     {
-        error: (issue) => issue.code === 'unrecognized_keys'
-            ? `Campo não reconhecido: ${issue.keys.join(', ')}`
-            : undefined
-    }
+        error: (issue) =>
+            issue.code === 'unrecognized_keys' ? `Campo não reconhecido: ${issue.keys.join(', ')}` : undefined,
+    },
 )
 
 const AnalysisIdParamsSchema = z.object({ id: z.uuid('ID inválido') })
 
-const ListAnalysesQuerySchema = paginationSchema
-    .extend(fromToSchema.shape)
-    .superRefine(refineFromTo)
+const ListAnalysesQuerySchema = paginationSchema.extend(fromToSchema.shape).superRefine(refineFromTo)
 
 const MapQuerySchema = fromToSchema
     .extend({
         status: StatusSchema,
-        classe: ClassSchema
+        classe: ClassSchema,
     })
     .superRefine(refineFromTo)
 

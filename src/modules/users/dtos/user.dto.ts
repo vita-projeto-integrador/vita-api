@@ -1,10 +1,10 @@
-import type { z } from 'zod';
+import type { z } from 'zod'
 import type {
     SignUpBodySchema,
     LoginBodySchema,
     UpdateMeBodySchema,
-    UserIdParamSchema
-} from '../schemas/user.schema.js';
+    UserIdParamSchema,
+} from '../schemas/user.schema.js'
 
 /*
 ======================================

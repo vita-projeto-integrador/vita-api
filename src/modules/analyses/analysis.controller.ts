@@ -7,7 +7,7 @@ import type {
     CreateAnalysisBodyDTO,
     AnalysisIdParamsDTO,
     ListAnalysesQueryDTO,
-    MapQueryDTO
+    MapQueryDTO,
 } from './dtos/analysis.dto.js'
 
 // Record<AnalysisStatus, ...> obriga a escrever uma mensagem para cada status novo
@@ -15,7 +15,7 @@ const STATUS_MESSAGES: Record<AnalysisStatus, string> = {
     em_espera: 'A análise aguarda processamento',
     processando: 'A análise está sendo processada',
     finalizada: 'A análise foi concluída',
-    falhou: 'A análise falhou após todas as tentativas'
+    falhou: 'A análise falhou após todas as tentativas',
 }
 
 class AnalysisController {

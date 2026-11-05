@@ -11,9 +11,9 @@ import ProcessedService from '../../processed/processed.service.js'
 import type { AnalysisJobData } from './analysis.queue.js'
 
 interface ProcessedImage {
-    image: Imagem;
-    buffer: Buffer;
-    key: string;
+    image: Imagem
+    buffer: Buffer
+    key: string
 }
 
 // formato default de imagens pré-processadas
@@ -43,10 +43,10 @@ export async function processAnalysis(job: Job<AnalysisJobData>): Promise<void> 
 }
 
 async function run(analysisId: string): Promise<void> {
-    const processed: ProcessedImage[] = [];
-    
+    const processed: ProcessedImage[] = []
+
     const analysis = await Analise.findByPk(analysisId, {
-        include: [{ model: Imagem, as: 'imagens', attributes: ['id', 'nome', 'caminho'] }]
+        include: [{ model: Imagem, as: 'imagens', attributes: ['id', 'nome', 'caminho'] }],
     })
 
     // excluída no meio do caminho, ou já concluída por uma tentativa anterior
@@ -74,13 +74,16 @@ async function run(analysisId: string): Promise<void> {
 
     // 3. grava tudo ou nada
     await connection.transaction(async (transaction) => {
-        await ProcessedService.createMany(processed.map(({ image, buffer, key }) => ({
-            id_imagem: image.id,
-            nome: image.nome ?? `${image.id}.${PROCESSED_FORMAT}`, // processadas.nome é NOT NULL
-            caminho: key,
-            tipo_mime: PROCESSED_FORMAT,
-            tamanho: buffer.length
-        })), transaction)
+        await ProcessedService.createMany(
+            processed.map(({ image, buffer, key }) => ({
+                id_imagem: image.id,
+                nome: image.nome ?? `${image.id}.${PROCESSED_FORMAT}`, // processadas.nome é NOT NULL
+                caminho: key,
+                tipo_mime: PROCESSED_FORMAT,
+                tamanho: buffer.length,
+            })),
+            transaction,
+        )
 
         await ClassificationService.create(analysisId, result, transaction)
         await analysis.update({ status: 'finalizada' }, { transaction })
@@ -92,7 +95,7 @@ export async function markAsFailed(analysisId: string): Promise<void> {
     try {
         const [affected] = await Analise.update(
             { status: 'falhou' },
-            { where: { id: analysisId, status: { [Op.ne]: 'finalizada' } } }
+            { where: { id: analysisId, status: { [Op.ne]: 'finalizada' } } },
         )
         if (affected === 0) return // excluída ou já finalizada: não mexe em nada
 
@@ -106,11 +109,13 @@ export async function markAsFailed(analysisId: string): Promise<void> {
 async function discardProcessed(analysisId: string): Promise<void> {
     const analysis = await Analise.findByPk(analysisId, {
         attributes: ['id', 'id_usuario'],
-        include: [{ model: Imagem, as: 'imagens', attributes: ['id'] }]
+        include: [{ model: Imagem, as: 'imagens', attributes: ['id'] }],
     })
     if (!analysis) return
 
-    await Promise.all((analysis.imagens ?? []).map((image) =>
-        storage.delete(processedKey(analysis.id_usuario, analysisId, image.id))
-    ))
+    await Promise.all(
+        (analysis.imagens ?? []).map((image) =>
+            storage.delete(processedKey(analysis.id_usuario, analysisId, image.id)),
+        ),
+    )
 }

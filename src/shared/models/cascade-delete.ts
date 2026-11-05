@@ -49,7 +49,7 @@ function spreadExclusion(father: AnyModel, son: AnyModel, fk: string): void {
         await son.destroy({
             where: { [fk]: instance.get('id') },
             transaction: options.transaction,
-            individualHooks: true
+            individualHooks: true,
         })
     })
 }

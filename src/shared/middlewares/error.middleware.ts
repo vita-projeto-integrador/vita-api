@@ -10,7 +10,7 @@ export const errorHandler: ErrorRequestHandler = (
     err: unknown,
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
 ): void => {
     // resposta já iniciada
     if (res.headersSent) {
@@ -18,13 +18,21 @@ export const errorHandler: ErrorRequestHandler = (
         return
     }
     // se for erro de biblioteca, traduz pra AppError
-    const appError = err instanceof AppError
-        ? err
-        : (mapZodError(err) ?? mapSequelizeError(err) ?? mapHttpError(err) ?? mapStorageError(err))
+    const appError =
+        err instanceof AppError
+            ? err
+            : (mapZodError(err) ?? mapSequelizeError(err) ?? mapHttpError(err) ?? mapStorageError(err))
     // erros esperados
     if (appError) {
         if (appError.statusCode >= 500) {
-            console.error('>> [AppError]:', appError.statusCode, req.method, req.originalUrl, appError.message, appError.cause)
+            console.error(
+                '>> [AppError]:',
+                appError.statusCode,
+                req.method,
+                req.originalUrl,
+                appError.message,
+                appError.cause,
+            )
         } else {
             console.warn('>> [AppError]:', appError.statusCode, req.method, req.originalUrl, appError.message)
         }
@@ -32,7 +40,7 @@ export const errorHandler: ErrorRequestHandler = (
             success: false,
             message: appError.message,
             detail: appError.detail,
-            errors: appError.errors
+            errors: appError.errors,
         } satisfies ErrorResponse)
         return
     }
@@ -40,6 +48,6 @@ export const errorHandler: ErrorRequestHandler = (
     console.error('>> [Bug]:', req.method, req.originalUrl, err)
     res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: 'Erro interno do servidor',
     } satisfies ErrorResponse)
 }

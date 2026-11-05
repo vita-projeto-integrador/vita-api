@@ -7,7 +7,7 @@ export function mapZodError(err: unknown): AppError | undefined {
     return new AppError(400, 'Dados inválidos', {
         errors: err.issues.map((issue) => ({
             field: issue.path.length ? issue.path.map(String).join('.') : null,
-            message: issue.message
-        }))
+            message: issue.message,
+        })),
     })
 }

@@ -18,7 +18,7 @@ function createRedisConnection(customConfig: customConfigInterface): Redis {
             console.log(`>> [IORedis] Tentando reconectar ... Tentativa ${times}`)
             const delay = Math.min(times * 5000, 15000) // loops de 5-15s
             return delay
-        }
+        },
     }
     // mescla configs
     const finalConfig = { ...baseConfig, ...customConfig }

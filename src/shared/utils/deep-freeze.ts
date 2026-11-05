@@ -1,5 +1,5 @@
 type DeepReadonly<T> = {
-  readonly [K in keyof T]: DeepReadonly<T[K]>
+    readonly [K in keyof T]: DeepReadonly<T[K]>
 }
 
 export function deepFreeze<T>(value: T): DeepReadonly<T> {

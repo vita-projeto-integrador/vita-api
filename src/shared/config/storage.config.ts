@@ -11,7 +11,7 @@ function createStorage(): StorageProvider {
             return new LocalStorageProvider(storageEnv.root, storageEnv.tmpTtlMs, {
                 publicUrl: storageEnv.publicUrl,
                 secret: storageEnv.urlSecret,
-                ttlMs: storageEnv.urlTtlMs
+                ttlMs: storageEnv.urlTtlMs,
             })
         default:
             throw new Error(`STORAGE_DRIVER desconhecido: ${storageEnv.driver}`)

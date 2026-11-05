@@ -12,22 +12,22 @@ type DriverError = { code?: string }
 // Partial: para códigos não mapeados que retornam undefined
 const ERROR_MESSAGES: Partial<Record<string, string>> = {
     // autenticação e permissões
-    '28P01': 'Acesso negado: senha inválida',                          // invalid_password
+    '28P01': 'Acesso negado: senha inválida', // invalid_password
     '28000': 'Acesso negado: usuário inexistente ou bloqueado pelo pg_hba.conf', // invalid_authorization_specification
-    '42501': 'Acesso negado: usuário sem permissão neste banco',       // insufficient_privilege
+    '42501': 'Acesso negado: usuário sem permissão neste banco', // insufficient_privilege
 
     // banco e extensões
-    '3D000': 'Banco de dados não encontrado',                          // invalid_catalog_name
-    '3F000': 'Schema não encontrado',                                  // invalid_schema_name
+    '3D000': 'Banco de dados não encontrado', // invalid_catalog_name
+    '3F000': 'Schema não encontrado', // invalid_schema_name
     '42883': 'Função não encontrada (extensão PostGIS instalada neste banco?)', // undefined_function
 
     // disponibilidade do servidor
-    '53300': 'Limite de conexões do servidor atingido',                // too_many_connections
+    '53300': 'Limite de conexões do servidor atingido', // too_many_connections
     '57P03': 'Servidor Postgres iniciando, encerrando ou em recuperação', // cannot_connect_now
-    '57P01': 'Conexão encerrada pelo administrador do banco',          // admin_shutdown
-    '57014': 'Consulta cancelada por timeout',                         // query_canceled
+    '57P01': 'Conexão encerrada pelo administrador do banco', // admin_shutdown
+    '57014': 'Consulta cancelada por timeout', // query_canceled
 
-    '42P01': 'Tabela não encontrada: rode pnpm db:fresh',             // undefined_table
+    '42P01': 'Tabela não encontrada: rode pnpm db:fresh', // undefined_table
 
     // rede
     ECONNREFUSED: 'Serviço do Postgres indisponível nesse endereço/porta',

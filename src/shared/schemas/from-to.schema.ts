@@ -1,19 +1,16 @@
-import { z } from 'zod';
-import { emptyToUndefined } from '../utils/indefinite.js';
+import { z } from 'zod'
+import { emptyToUndefined } from '../utils/indefinite.js'
 
 const OptionalDateSchema = z.preprocess(emptyToUndefined, z.coerce.date().optional())
 
 // parâmetros de datação (de x até y)
 export const fromToSchema = z.object({
     from: OptionalDateSchema,
-    to: OptionalDateSchema
-});
+    to: OptionalDateSchema,
+})
 
 // regras de intervalo
-export const refineFromTo = (
-    query: { from?: Date | undefined; to?: Date | undefined },
-    ctx: z.RefinementCtx
-) => {
+export const refineFromTo = (query: { from?: Date | undefined; to?: Date | undefined }, ctx: z.RefinementCtx) => {
     const hasFrom = query.from !== undefined
     const hasTo = query.to !== undefined
 

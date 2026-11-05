@@ -1,14 +1,10 @@
-import type { NextFunction, Request, Response } from 'express';
-import AppError from '../errors/app-error.js';
-import { verifyToken } from '../utils/jwt.js';
+import type { NextFunction, Request, Response } from 'express'
+import AppError from '../errors/app-error.js'
+import { verifyToken } from '../utils/jwt.js'
 import { Usuario } from '../models/usuario.model.js'
-import type { TokenPayload } from '../types/token.types.js';
+import type { TokenPayload } from '../types/token.types.js'
 
-export async function authenticate(
-    request: Request,
-    _response: Response,
-    next: NextFunction,
-) {
+export async function authenticate(request: Request, _response: Response, next: NextFunction) {
     try {
         const authHeader = request.headers.authorization
 
@@ -26,8 +22,8 @@ export async function authenticate(
 
         const user = await Usuario.findOne({
             where: {
-                id: payload.id
-            }
+                id: payload.id,
+            },
         })
 
         if (!user) {
@@ -37,8 +33,7 @@ export async function authenticate(
         request.user = payload
 
         next()
-
     } catch (error) {
-        next(error);
+        next(error)
     }
 }

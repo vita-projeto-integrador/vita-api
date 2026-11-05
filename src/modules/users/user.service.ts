@@ -1,26 +1,20 @@
 import { connection, Usuario } from '../../shared/models/index.model.js'
 import AppError from '../../shared/errors/app-error.js'
 import { randomUUID } from 'node:crypto'
-import { hashPassword, comparePassword } from '../../shared/utils/hash.js';
+import { hashPassword, comparePassword } from '../../shared/utils/hash.js'
 import storage from '../../shared/config/storage.config.js'
-import type {
-    SignUpBodyDTO,
-    LoginBodyDTO,
-    UpdateMeBodyDTO,
-    UserIdParamsDTO
-} from './dtos/user.dto.js'
+import type { SignUpBodyDTO, LoginBodyDTO, UpdateMeBodyDTO, UserIdParamsDTO } from './dtos/user.dto.js'
 import type { MulterFile } from '../../shared/types/multer.types.js'
 import { mimeToFormat } from '../../shared/config/formats.config.js'
 import { detectFormat } from '../../shared/image/pipelines.js'
 import { profilePhotoKey } from '../../shared/storage/keys.js'
 import { toFileUrl } from '../../shared/storage/file-url.js'
 
-
 class UserService {
     async create(data: SignUpBodyDTO) {
         // verifica se já existe
         const exists = await Usuario.findOne({
-            where: { email: data.email }
+            where: { email: data.email },
         })
 
         if (exists) {
@@ -33,20 +27,20 @@ class UserService {
         // tenta cadastrar
         const user = await Usuario.create({
             ...data,
-            senha_hash
+            senha_hash,
         })
         return {
             id: user.id,
             nome: user.nome,
             email: user.email,
             perfil: user.perfil,
-            criado_em: user.createdAt
+            criado_em: user.createdAt,
         }
     }
 
     async login(data: LoginBodyDTO) {
         const user = await Usuario.findOne({
-            where: { email: data.email }
+            where: { email: data.email },
         })
 
         if (!user) {
@@ -63,15 +57,15 @@ class UserService {
             id: user.id,
             nome: user.nome,
             email: user.email,
-            perfil: user.perfil
+            perfil: user.perfil,
         }
     }
 
     async get(id: UserIdParamsDTO) {
         const user = await Usuario.findByPk(id, {
             attributes: {
-                exclude: ['senha_hash']
-            }
+                exclude: ['senha_hash'],
+            },
         })
 
         if (!user) {
@@ -91,12 +85,11 @@ class UserService {
             curso: user.curso,
             foto_perfil: await toFileUrl(user.foto_perfil),
             criado_em: user.createdAt,
-            alterado_em: user.updatedAt
+            alterado_em: user.updatedAt,
         }
     }
 
     async update(id: UserIdParamsDTO, data: UpdateMeBodyDTO) {
-
         const user = await Usuario.findByPk(id)
 
         if (!user) {
@@ -114,7 +107,7 @@ class UserService {
             nome: user.nome,
             email: user.email,
             perfil: user.perfil,
-            alterado_em: user.updatedAt
+            alterado_em: user.updatedAt,
         }
     }
 

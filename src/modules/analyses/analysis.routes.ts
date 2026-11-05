@@ -8,14 +8,19 @@ import {
     CreateAnalysisBodySchema,
     AnalysisIdParamsSchema,
     ListAnalysesQuerySchema,
-    MapQuerySchema
+    MapQuerySchema,
 } from './schemas/analysis.schema.js'
 
 const analysisRoutes = express.Router()
 
 analysisRoutes.use(authenticate)
 
-analysisRoutes.post('/', createMulterHandler(analysisPolicy), validateBody(CreateAnalysisBodySchema), AnalysisController.create)
+analysisRoutes.post(
+    '/',
+    createMulterHandler(analysisPolicy),
+    validateBody(CreateAnalysisBodySchema),
+    AnalysisController.create,
+)
 analysisRoutes.get('/', validateQuery(ListAnalysesQuerySchema), AnalysisController.list)
 analysisRoutes.get('/map', validateQuery(MapQuerySchema), AnalysisController.getMap)
 analysisRoutes.get('/:id', validateParams(AnalysisIdParamsSchema), AnalysisController.getDetails)

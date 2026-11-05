@@ -5,7 +5,6 @@ import { setRedisState } from '../utils/redis-state.js'
 let mainClient: Redis | null = null
 
 function startMainClient(): Redis {
-
     if (mainClient) return mainClient
 
     // cliente geral

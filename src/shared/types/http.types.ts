@@ -5,7 +5,7 @@ type ErrorDetail = string | Record<string, unknown>
 interface SuccessResponse<T = unknown> {
     success: true
     message: string
-    data?: T // recebe o tipo passado em <T> (generics); se não informado T = unknown  
+    data?: T // recebe o tipo passado em <T> (generics); se não informado T = unknown
 }
 
 // Contrato HTTP: molde para objeto de resposta HTTP de erro
@@ -28,7 +28,7 @@ interface PaginatedData<T> {
 }
 
 export interface FieldError {
-    field: string | null   // null = erro no objeto inteiro (ex.: refine na raiz)
+    field: string | null // null = erro no objeto inteiro (ex.: refine na raiz)
     message: string
 }
 

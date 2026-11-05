@@ -3,10 +3,7 @@ import { CorsOptions } from 'cors'
 
 // origens permitidas para requisições
 const { webUrl, expoUrl } = env.cors
-const allowedOrigins = [
-    webUrl,
-    expoUrl
-].filter((url): url is string => Boolean(url))
+const allowedOrigins = [webUrl, expoUrl].filter((url): url is string => Boolean(url))
 
 const corsOptions: CorsOptions = {
     origin: (origin, callback) => {
@@ -20,7 +17,7 @@ const corsOptions: CorsOptions = {
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
 }
 
 export default corsOptions

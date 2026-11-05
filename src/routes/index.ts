@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { healthRoutes } from "../modules/health/health.routes.js"
+import { healthRoutes } from '../modules/health/health.routes.js'
 import userRoutes from '../modules/users/user.routes.js'
 import analysisRoutes from '../modules/analyses/analysis.routes.js'
 import fileRoutes from '../modules/files/file.routes.js'

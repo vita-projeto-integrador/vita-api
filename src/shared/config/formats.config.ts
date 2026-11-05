@@ -1,4 +1,4 @@
-import type { MimeType } from "../types/multer.types.js"
+import type { MimeType } from '../types/multer.types.js'
 
 export const IMAGE_FORMATS = ['jpeg', 'png', 'webp'] as const
 export type ImageFormat = (typeof IMAGE_FORMATS)[number]
@@ -17,11 +17,15 @@ export const allowedImageFormats = {
 export const allowedDocumentFormats = {
     pdf: { mime: 'application/pdf', ext: 'pdf', label: 'PDF' },
     doc: { mime: 'application/msword', ext: 'doc', label: 'DOC' },
-    docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx', label: 'DOCX' },
+    docx: {
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ext: 'docx',
+        label: 'DOCX',
+    },
     xls: { mime: 'application/vnd.ms-excel', ext: 'xls', label: 'PDF' },
     xlsx: { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ext: 'xlsx', label: 'XLSX' },
     txt: { mime: 'text/plain', ext: 'txt', label: 'TXT' },
-    csv: { mime: 'text/csv', ext: 'csv', label: 'CSV' }
+    csv: { mime: 'text/csv', ext: 'csv', label: 'CSV' },
 } as const satisfies Record<DocumentFormat, MimeType>
 
 // conversor: formato -> mime type
@@ -31,18 +35,14 @@ export function formatToMime(format: ImageFormat): ImageMimeType {
 
 // conversor: mime type -> format
 export function mimeToFormat(mime: string): ImageFormat | undefined {
-    const entry = Object.entries(allowedImageFormats).find(
-        ([, value]) => value.mime === mime
-    )
+    const entry = Object.entries(allowedImageFormats).find(([, value]) => value.mime === mime)
 
     return entry ? (entry[0] as ImageFormat) : undefined
 }
 
 // conversor: extensão -> formato (ex.: 'jpg' -> 'jpeg')
 export function extToFormat(ext: string): ImageFormat | undefined {
-    const entry = Object.entries(allowedImageFormats).find(
-        ([, value]) => value.ext === ext.toLowerCase()
-    )
+    const entry = Object.entries(allowedImageFormats).find(([, value]) => value.ext === ext.toLowerCase())
 
     return entry ? (entry[0] as ImageFormat) : undefined
 }

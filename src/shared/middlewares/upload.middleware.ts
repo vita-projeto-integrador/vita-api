@@ -20,7 +20,7 @@ export function createMulterHandler(config: UploadPolicyConfig): RequestHandler 
     const upload = multer({
         storage,
         limits,
-        fileFilter
+        fileFilter,
     }).array(field, maxFiles)
 
     // executa handler

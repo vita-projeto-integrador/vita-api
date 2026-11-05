@@ -33,12 +33,12 @@ Documento de referência do projeto VITA. Define regras e objetivos que devem se
 
 O projeto é dividido em quatro repositórios, todos na organização `vita-projeto-integrador` do GitHub:
 
-| Repositório | Responsabilidade | Stack |
-| --- | --- | --- |
-| `vita-api` | API REST e, enquanto a extração do banco estiver congelada, o banco de dados (seção 4.1) | Node.js, Express, TypeScript, Sequelize, Zod, PostgreSQL + PostGIS |
-| `vita-database` | Schema, migrations e models. **Congelado** (seção 15) | PostgreSQL + PostGIS, TypeScript, Sequelize |
-| `vita-app-web` | Front-end web | Next.js, React, TypeScript |
-| `vita-app-mobile` | Front-end mobile | Expo, React Native, TypeScript |
+| Repositório       | Responsabilidade                                                                         | Stack                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `vita-api`        | API REST e, enquanto a extração do banco estiver congelada, o banco de dados (seção 4.1) | Node.js, Express, TypeScript, Sequelize, Zod, PostgreSQL + PostGIS |
+| `vita-database`   | Schema, migrations e models. **Congelado** (seção 15)                                    | PostgreSQL + PostGIS, TypeScript, Sequelize                        |
+| `vita-app-web`    | Front-end web                                                                            | Next.js, React, TypeScript                                         |
+| `vita-app-mobile` | Front-end mobile                                                                         | Expo, React Native, TypeScript                                     |
 
 - Todos os repositórios devem ser dockerizados.
 - Todos os repositórios devem ter CI/CD com GitHub Actions, Husky e ESLint.
@@ -46,10 +46,10 @@ O projeto é dividido em quatro repositórios, todos na organização `vita-proj
 
 ### 1.1 Versões de referência
 
-| Ferramenta | Versão | Observação |
-| --- | --- | --- |
-| pnpm | `11.24.0` | Versão usada no `vita-api`. Fixada no campo `packageManager` do `package.json` de cada repositório Node |
-| PostgreSQL + PostGIS | `postgis/postgis:17-3.5` | Imagem Docker de referência (PostgreSQL 17 com PostGIS 3.5) |
+| Ferramenta           | Versão                   | Observação                                                                                              |
+| -------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| pnpm                 | `11.24.0`                | Versão usada no `vita-api`. Fixada no campo `packageManager` do `package.json` de cada repositório Node |
+| PostgreSQL + PostGIS | `postgis/postgis:17-3.5` | Imagem Docker de referência (PostgreSQL 17 com PostGIS 3.5)                                             |
 
 ## 2. Convenções
 
@@ -57,9 +57,9 @@ O projeto é dividido em quatro repositórios, todos na organização `vita-proj
 - Toda coluna é obrigatória, exceto as marcadas como **opcional**.
 - Faixas de tamanho (ex.: 3–150) são validadas no DTO (Zod). O valor máximo também define o tamanho da coluna.
 - Também são garantidos no banco, por constraints `CHECK` (seção 4.3):
-  - as faixas de valores de dados gravados sem passar por um DTO (ex.: pelos workers);
-  - os formatos dos quais o banco depende (ex.: e-mail em minúsculas, base do índice único);
-  - os formatos fixos de documentos e contato (ex.: telefone, CPF e CNPJ apenas com dígitos).
+    - as faixas de valores de dados gravados sem passar por um DTO (ex.: pelos workers);
+    - os formatos dos quais o banco depende (ex.: e-mail em minúsculas, base do índice único);
+    - os formatos fixos de documentos e contato (ex.: telefone, CPF e CNPJ apenas com dígitos).
 - Caminhos de storage usam placeholders entre chaves, por exemplo `{id_usuario}`.
 
 ## 3. API
@@ -100,27 +100,28 @@ Valem no regime temporário e depois da extração.
 - Os motivos das decisões de schema ficam em `COMMENT ON`: são gravados no próprio banco e preservados pelo `pg_dump`.
 - Nomes de constraints, índices e tipos seguem o padrão abaixo. Eles aparecem nas mensagens de erro do banco e são usados pela API para traduzir violações em respostas HTTP. Chaves estrangeiras, índices e `CHECK` recebem o nome explicitamente. A chave primária usa o nome padrão do PostgreSQL, que já segue o padrão. O tipo `ENUM` usa o nome que o Sequelize gera; no `schema.sql`, esse nome é escrito por extenso (`CREATE TYPE enum_<tabela>_<coluna>`), para que o schema não mude na retomada das migrations (seção 15).
 
-  | Objeto | Padrão | Exemplo |
-  | --- | --- | --- |
-  | Chave primária | `<tabela>_pkey` | `usuarios_pkey` |
-  | Chave estrangeira | `<tabela>_<entidade referenciada>_fk` | `analises_usuario_fk` |
-  | Índice | `<tabela>_<coluna>_idx` | `analises_id_usuario_idx` |
-  | Índice único | `<tabela>_<regra>_uq` | `usuarios_email_ativo_uq` |
-  | Índice espacial (GiST) | `<tabela>_<coluna>_gix` | `imagens_coordenadas_gix` |
-  | `CHECK` | `<tabela>_<regra>_ck` | `usuarios_email_minusculo_ck` |
-  | Tipo `ENUM` | `enum_<tabela>_<coluna>` (o nome que o Sequelize gera) | `enum_analises_status` |
+    | Objeto                 | Padrão                                                 | Exemplo                       |
+    | ---------------------- | ------------------------------------------------------ | ----------------------------- |
+    | Chave primária         | `<tabela>_pkey`                                        | `usuarios_pkey`               |
+    | Chave estrangeira      | `<tabela>_<entidade referenciada>_fk`                  | `analises_usuario_fk`         |
+    | Índice                 | `<tabela>_<coluna>_idx`                                | `analises_id_usuario_idx`     |
+    | Índice único           | `<tabela>_<regra>_uq`                                  | `usuarios_email_ativo_uq`     |
+    | Índice espacial (GiST) | `<tabela>_<coluna>_gix`                                | `imagens_coordenadas_gix`     |
+    | `CHECK`                | `<tabela>_<regra>_ck`                                  | `usuarios_email_minusculo_ck` |
+    | Tipo `ENUM`            | `enum_<tabela>_<coluna>` (o nome que o Sequelize gera) | `enum_analises_status`        |
 
 - **Soft delete:** nenhum registro é apagado fisicamente. A exclusão lógica deve propagar para os registros filhos, na mesma transação:
-  - `usuarios` → `analises`
-  - `analises` → `imagens` e `classificacoes`
-  - `imagens` → `processadas`
+    - `usuarios` → `analises`
+    - `analises` → `imagens` e `classificacoes`
+    - `imagens` → `processadas`
 
-  O Sequelize não faz essa propagação nativamente; ela deve ser implementada via hooks nas models (no regime temporário, as models da API). A API abre a transação da exclusão. As models recusam:
-  - a exclusão de usuários, análises e imagens fora de uma transação (são as tabelas que propagam a exclusão para filhos);
-  - a exclusão física (`force: true`) em qualquer das cinco tabelas;
-  - a exclusão em lote de usuários, análises e imagens sem `individualHooks: true`. O hook de lote recebe só as opções da chamada, sem os registros, e não consegue propagar a exclusão; com `individualHooks: true`, cada registro passa pelo `beforeDestroy`, que propaga.
+    O Sequelize não faz essa propagação nativamente; ela deve ser implementada via hooks nas models (no regime temporário, as models da API). A API abre a transação da exclusão. As models recusam:
+    - a exclusão de usuários, análises e imagens fora de uma transação (são as tabelas que propagam a exclusão para filhos);
+    - a exclusão física (`force: true`) em qualquer das cinco tabelas;
+    - a exclusão em lote de usuários, análises e imagens sem `individualHooks: true`. O hook de lote recebe só as opções da chamada, sem os registros, e não consegue propagar a exclusão; com `individualHooks: true`, cada registro passa pelo `beforeDestroy`, que propaga.
 
-  As recusas valem tanto para a exclusão de um registro (hook `beforeDestroy`) quanto para a exclusão em lote (hook `beforeBulkDestroy`): uma exclusão em lote sem `individualHooks: true` não passa pelo `beforeDestroy`.
+    As recusas valem tanto para a exclusão de um registro (hook `beforeDestroy`) quanto para a exclusão em lote (hook `beforeBulkDestroy`): uma exclusão em lote sem `individualHooks: true` não passa pelo `beforeDestroy`.
+
 - **PostGIS:** coordenadas usam o tipo `GEOGRAPHY(POINT, 4326)` (SRID 4326), a ordem `(longitude, latitude)`, a mesma do GeoJSON, e índice GiST.
 
 ## 5. Entidades
@@ -129,21 +130,21 @@ Valem no regime temporário e depois da extração.
 
 Contas e dados cadastrais dos usuários.
 
-| Coluna | Tipo | Regras |
-| --- | --- | --- |
-| `id` | `UUID` | Chave primária |
-| `nome` | `VARCHAR(150)` | 3–150 caracteres |
-| `email` | `VARCHAR(250)` | 3–250 caracteres; normalizado para minúsculas; único entre usuários ativos; **CHECK** `email = lower(email)` |
-| `senha_hash` | `VARCHAR(255)` | Hash bcrypt da senha |
-| `telefone` | `VARCHAR(15)` | Opcional; 10–15 dígitos, sem pontuação; **CHECK** `telefone ~ '^[0-9]{10,15}$'` |
-| `data_nascimento` | `DATE` | Opcional |
-| `perfil` | `ENUM('produtor', 'estudante', 'outro')` | Padrão `'outro'` |
-| `endereco` | `VARCHAR(255)` | Opcional; 5–255 caracteres; endereço completo; perfil `produtor` |
-| `cnpj` | `VARCHAR(14)` | Opcional; 14 dígitos, sem pontuação; perfil `produtor`; **CHECK** `cnpj ~ '^[0-9]{14}$'` |
-| `cpf` | `VARCHAR(11)` | Opcional; 11 dígitos, sem pontuação; perfil `produtor`; **CHECK** `cpf ~ '^[0-9]{11}$'` |
-| `faculdade` | `VARCHAR(150)` | Opcional; 3–150 caracteres; perfil `estudante` |
-| `curso` | `VARCHAR(150)` | Opcional; 3–150 caracteres; perfil `estudante` |
-| `foto_perfil` | `VARCHAR(2048)` | Opcional; caminho relativo do arquivo no storage |
+| Coluna            | Tipo                                     | Regras                                                                                                       |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `id`              | `UUID`                                   | Chave primária                                                                                               |
+| `nome`            | `VARCHAR(150)`                           | 3–150 caracteres                                                                                             |
+| `email`           | `VARCHAR(250)`                           | 3–250 caracteres; normalizado para minúsculas; único entre usuários ativos; **CHECK** `email = lower(email)` |
+| `senha_hash`      | `VARCHAR(255)`                           | Hash bcrypt da senha                                                                                         |
+| `telefone`        | `VARCHAR(15)`                            | Opcional; 10–15 dígitos, sem pontuação; **CHECK** `telefone ~ '^[0-9]{10,15}$'`                              |
+| `data_nascimento` | `DATE`                                   | Opcional                                                                                                     |
+| `perfil`          | `ENUM('produtor', 'estudante', 'outro')` | Padrão `'outro'`                                                                                             |
+| `endereco`        | `VARCHAR(255)`                           | Opcional; 5–255 caracteres; endereço completo; perfil `produtor`                                             |
+| `cnpj`            | `VARCHAR(14)`                            | Opcional; 14 dígitos, sem pontuação; perfil `produtor`; **CHECK** `cnpj ~ '^[0-9]{14}$'`                     |
+| `cpf`             | `VARCHAR(11)`                            | Opcional; 11 dígitos, sem pontuação; perfil `produtor`; **CHECK** `cpf ~ '^[0-9]{11}$'`                      |
+| `faculdade`       | `VARCHAR(150)`                           | Opcional; 3–150 caracteres; perfil `estudante`                                                               |
+| `curso`           | `VARCHAR(150)`                           | Opcional; 3–150 caracteres; perfil `estudante`                                                               |
+| `foto_perfil`     | `VARCHAR(2048)`                          | Opcional; caminho relativo do arquivo no storage                                                             |
 
 - O campo de entrada no DTO é `senha`: 8 a 72 bytes (limite do bcrypt), com no mínimo 1 letra maiúscula, 1 minúscula, 1 número e 1 caractere especial.
 - `perfil` ainda não tem função definida. Os campos associados a perfis são opcionais para qualquer perfil, por enquanto.
@@ -153,12 +154,12 @@ Contas e dados cadastrais dos usuários.
 
 Solicitação de processamento: o grupo de imagens que o usuário envia de uma vez. Todas as imagens de uma análise mostram a mesma fruta, em ângulos diferentes.
 
-| Coluna | Tipo | Regras |
-| --- | --- | --- |
-| `id` | `UUID` | Chave primária |
-| `id_usuario` | `UUID` | FK para `usuarios`; usuário que solicitou a análise |
-| `status` | `ENUM('em_espera', 'processando', 'finalizada', 'falhou')` | Padrão `'em_espera'` |
-| `coordenadas` | `GEOGRAPHY(POINT, 4326)` | Opcional; local da análise. Reservada para o módulo de diagramação (mapa); a regra de preenchimento será definida com ele |
+| Coluna        | Tipo                                                       | Regras                                                                                                                    |
+| ------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | `UUID`                                                     | Chave primária                                                                                                            |
+| `id_usuario`  | `UUID`                                                     | FK para `usuarios`; usuário que solicitou a análise                                                                       |
+| `status`      | `ENUM('em_espera', 'processando', 'finalizada', 'falhou')` | Padrão `'em_espera'`                                                                                                      |
+| `coordenadas` | `GEOGRAPHY(POINT, 4326)`                                   | Opcional; local da análise. Reservada para o módulo de diagramação (mapa); a regra de preenchimento será definida com ele |
 
 Ciclo de vida do `status`:
 
@@ -173,12 +174,12 @@ em_espera ──▶ processando ──▶ finalizada
                     └───────▶ falhou
 ```
 
-| Transição | Executada por | Regra |
-| --- | --- | --- |
-| (criação) → `em_espera` | Service de criação de análises | Após gravar a análise e as imagens. Em seguida, tenta incluir o job na fila; se o Redis estiver indisponível, a análise permanece em `em_espera` e a resposta continua sendo `202 Accepted` |
-| `em_espera` ou `processando` → `processando` | Worker | Ao assumir o job. A origem `processando` cobre as novas tentativas do BullMQ e a retomada de jobs perdidos pela rotina de recuperação (seção 9.1) |
-| `processando` → `finalizada` | Worker | Na mesma transação que grava as `processadas` e a `classificacao`: não existe análise finalizada sem resultado |
-| `processando` → `falhou` | Worker | Ao esgotar as tentativas do job (`attempts` com backoff) ou diante de erro não recuperável |
+| Transição                                    | Executada por                  | Regra                                                                                                                                                                                       |
+| -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (criação) → `em_espera`                      | Service de criação de análises | Após gravar a análise e as imagens. Em seguida, tenta incluir o job na fila; se o Redis estiver indisponível, a análise permanece em `em_espera` e a resposta continua sendo `202 Accepted` |
+| `em_espera` ou `processando` → `processando` | Worker                         | Ao assumir o job. A origem `processando` cobre as novas tentativas do BullMQ e a retomada de jobs perdidos pela rotina de recuperação (seção 9.1)                                           |
+| `processando` → `finalizada`                 | Worker                         | Na mesma transação que grava as `processadas` e a `classificacao`: não existe análise finalizada sem resultado                                                                              |
+| `processando` → `falhou`                     | Worker                         | Ao esgotar as tentativas do job (`attempts` com backoff) ou diante de erro não recuperável                                                                                                  |
 
 - Cada transição é feita pela model (`Analise.update`), condicionada aos status de origem. Por causa do `paranoid`, a model ignora análises excluídas logicamente e atualiza o `updated_at`. O número de linhas afetadas indica se a transição ocorreu.
 - Se nenhuma linha for afetada, a análise já está em outro estado (ex.: finalizada por uma execução anterior, ou excluída logicamente). O worker então **descarta o job sem processar e sem lançar erro**: um erro faria o BullMQ tentar de novo.
@@ -189,15 +190,15 @@ em_espera ──▶ processando ──▶ finalizada
 
 Imagens originais enviadas em uma análise.
 
-| Coluna | Tipo | Regras |
-| --- | --- | --- |
-| `id` | `UUID` | Chave primária |
-| `id_analise` | `UUID` | FK para `analises` |
-| `nome` | `VARCHAR(150)` | Opcional; 3–150 caracteres; nome original do arquivo |
-| `caminho` | `VARCHAR(2048)` | Caminho relativo do arquivo no storage |
-| `coordenadas` | `GEOGRAPHY(POINT, 4326)` | Opcional; local de captura da imagem |
-| `tipo_mime` | `ENUM('jpeg', 'png', 'webp')` | Detectado no upload |
-| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
+| Coluna        | Tipo                          | Regras                                               |
+| ------------- | ----------------------------- | ---------------------------------------------------- |
+| `id`          | `UUID`                        | Chave primária                                       |
+| `id_analise`  | `UUID`                        | FK para `analises`                                   |
+| `nome`        | `VARCHAR(150)`                | Opcional; 3–150 caracteres; nome original do arquivo |
+| `caminho`     | `VARCHAR(2048)`               | Caminho relativo do arquivo no storage               |
+| `coordenadas` | `GEOGRAPHY(POINT, 4326)`      | Opcional; local de captura da imagem                 |
+| `tipo_mime`   | `ENUM('jpeg', 'png', 'webp')` | Detectado no upload                                  |
+| `tamanho`     | `INTEGER`                     | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
 
 - `tipo_mime` guarda o subtipo do MIME. A API converte entre o valor do enum e o tipo MIME completo (`jpeg` ↔ `image/jpeg`). JPG e JPEG são o mesmo formato (`jpeg`).
 
@@ -205,13 +206,13 @@ Imagens originais enviadas em uma análise.
 
 Imagens geradas pelo pipeline de pré-processamento a partir das originais. Cada imagem original gera várias processadas (seção 10).
 
-| Coluna | Tipo | Regras |
-| --- | --- | --- |
-| `id` | `UUID` | Chave primária |
-| `id_imagem` | `UUID` | FK para `imagens`; imagem original |
-| `caminho` | `VARCHAR(2048)` | Caminho relativo do arquivo no storage |
-| `tipo_mime` | `ENUM('jpeg', 'png', 'webp')` | Padrão `'webp'` |
-| `tamanho` | `INTEGER` | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
+| Coluna      | Tipo                          | Regras                                               |
+| ----------- | ----------------------------- | ---------------------------------------------------- |
+| `id`        | `UUID`                        | Chave primária                                       |
+| `id_imagem` | `UUID`                        | FK para `imagens`; imagem original                   |
+| `caminho`   | `VARCHAR(2048)`               | Caminho relativo do arquivo no storage               |
+| `tipo_mime` | `ENUM('jpeg', 'png', 'webp')` | Padrão `'webp'`                                      |
+| `tamanho`   | `INTEGER`                     | Tamanho do arquivo em bytes; **CHECK** `tamanho > 0` |
 
 - A análise de uma imagem processada é obtida pela imagem original (`processadas.id_imagem` → `imagens.id_analise`).
 
@@ -219,15 +220,15 @@ Imagens geradas pelo pipeline de pré-processamento a partir das originais. Cada
 
 Resultado da inferência do modelo sobre uma análise. Cada análise tem uma única classificação, que vale para todas as imagens incluídas nela.
 
-| Coluna | Tipo | Regras |
-| --- | --- | --- |
-| `id` | `UUID` | Chave primária |
-| `id_analise` | `UUID` | FK para `analises`; única entre classificações ativas |
-| `classe` | `ENUM('saudavel', 'infectado')` | Rótulo atribuído pelo modelo; sem valor padrão |
-| `confianca` | `FLOAT` | 0–1; probabilidade atribuída pelo modelo à classe escolhida; **CHECK** `confianca BETWEEN 0 AND 1` |
-| `tempo_execucao` | `INTEGER` | Duração da inferência em milissegundos; **CHECK** `tempo_execucao >= 0` |
-| `modelo_cnn` | `VARCHAR(150)` | 3–150 caracteres; nome do modelo |
-| `versao_modelo` | `VARCHAR(50)` | 5–50 caracteres; versão do modelo |
+| Coluna           | Tipo                            | Regras                                                                                             |
+| ---------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `id`             | `UUID`                          | Chave primária                                                                                     |
+| `id_analise`     | `UUID`                          | FK para `analises`; única entre classificações ativas                                              |
+| `classe`         | `ENUM('saudavel', 'infectado')` | Rótulo atribuído pelo modelo; sem valor padrão                                                     |
+| `confianca`      | `FLOAT`                         | 0–1; probabilidade atribuída pelo modelo à classe escolhida; **CHECK** `confianca BETWEEN 0 AND 1` |
+| `tempo_execucao` | `INTEGER`                       | Duração da inferência em milissegundos; **CHECK** `tempo_execucao >= 0`                            |
+| `modelo_cnn`     | `VARCHAR(150)`                  | 3–150 caracteres; nome do modelo                                                                   |
+| `versao_modelo`  | `VARCHAR(50)`                   | 5–50 caracteres; versão do modelo                                                                  |
 
 - A unicidade de uma classificação por análise é garantida por índice único parcial: `UNIQUE (id_analise) WHERE deleted_at IS NULL`.
 - `id_analise` também tem um índice comum: o parcial não cobre registros excluídos logicamente, e a checagem da chave estrangeira precisa de todas as linhas.
@@ -264,13 +265,13 @@ Regra de agregação (o modelo classifica cada imagem separadamente e os resulta
 - Acesso exclusivamente por uma interface independente de driver, com os métodos mínimos `put`, `get`, `delete` e `getAccessUrl`. A interface deve permitir trocar o driver local por um de nuvem sem alterar quem a consome.
 - O banco guarda apenas o caminho relativo dos arquivos. A URL de acesso é gerada por `getAccessUrl`.
 - Estrutura de diretórios:
-  - `storage/uploads/`: imagens originais de análises e fotos de perfil.
-  - `storage/processed/`: imagens geradas pelo pipeline de pré-processamento.
-  - `storage/temp/`: arquivos temporários de acesso rápido. Deve existir uma rotina de limpeza para este diretório.
+    - `storage/uploads/`: imagens originais de análises e fotos de perfil.
+    - `storage/processed/`: imagens geradas pelo pipeline de pré-processamento.
+    - `storage/temp/`: arquivos temporários de acesso rápido. Deve existir uma rotina de limpeza para este diretório.
 - Caminhos padrão:
-  - Imagens originais de análises: `storage/uploads/{id_usuario}/{id_analise}/`
-  - Imagens processadas: `storage/processed/{id_usuario}/{id_analise}/`
-  - Foto de perfil: `storage/uploads/{id_usuario}/profile/`
+    - Imagens originais de análises: `storage/uploads/{id_usuario}/{id_analise}/`
+    - Imagens processadas: `storage/processed/{id_usuario}/{id_analise}/`
+    - Foto de perfil: `storage/uploads/{id_usuario}/profile/`
 
 ## 9. Processamento assíncrono (Redis e BullMQ)
 
@@ -316,11 +317,11 @@ Regra de agregação (o modelo classifica cada imagem separadamente e os resulta
 - Rotas inexistentes respondem 404 no formato de erro padrão (seção 12).
 - **Logs:** um `AppError` é registrado em uma linha, com status, método, URL e mensagem, sem serializar o objeto do erro; nos 5xx, a linha inclui a causa (`cause`). Bugs são registrados com stack, método e URL. O body da requisição nunca é logado nem devolvido ao cliente, porque pode conter senha.
 
-| Categoria | Definição | Comportamento |
-| --- | --- | --- |
-| `AppError` | Erro de negócio previsto, lançado intencionalmente | Resposta HTTP 4xx/5xx com mensagem própria; a API continua operando |
-| Bug | Erro inesperado, não previsto pelo código | Resposta HTTP 500 Internal Server Error genérica |
-| Erro fatal | Falha em serviço essencial (boot, variáveis de ambiente, conexão com o banco) | Lançado imediatamente; encerra a API |
+| Categoria  | Definição                                                                     | Comportamento                                                       |
+| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `AppError` | Erro de negócio previsto, lançado intencionalmente                            | Resposta HTTP 4xx/5xx com mensagem própria; a API continua operando |
+| Bug        | Erro inesperado, não previsto pelo código                                     | Resposta HTTP 500 Internal Server Error genérica                    |
+| Erro fatal | Falha em serviço essencial (boot, variáveis de ambiente, conexão com o banco) | Lançado imediatamente; encerra a API                                |
 
 ## 12. Respostas HTTP
 
@@ -328,9 +329,9 @@ Formato padrão:
 
 ```json
 {
-  "success": true,
-  "message": "string",
-  "data": {}
+    "success": true,
+    "message": "string",
+    "data": {}
 }
 ```
 
@@ -338,14 +339,14 @@ Formato de respostas paginadas (o envelope é o mesmo; muda apenas o conteúdo d
 
 ```json
 {
-  "success": true,
-  "message": "string",
-  "data": {
-    "items": [],
-    "total": 0,
-    "page": 1,
-    "limit": 10
-  }
+    "success": true,
+    "message": "string",
+    "data": {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "limit": 10
+    }
 }
 ```
 
@@ -353,9 +354,9 @@ Formato de respostas de erro:
 
 ```json
 {
-  "success": false,
-  "message": "string",
-  "detail": "string | object"
+    "success": false,
+    "message": "string",
+    "detail": "string | object"
 }
 ```
 
@@ -380,18 +381,18 @@ Formato de respostas de erro:
 - Separação nos quatro repositórios (`vita-api`, `vita-database`, `vita-app-web`, `vita-app-mobile`). O `vita-database` está congelado (seção 15).
 - Boot da API TypeScript (dockerizado), com estrutura `src/shared`, `src/modules` e `src/routes`.
 - Normalização e validação das variáveis de ambiente com Zod:
-  - `process.env` é lido apenas em `env.ts`; todo o código consome o objeto `env` validado.
-  - Origens de CORS (`URL_WEB` e `URL_EXPO`, opcional) normalizadas para o formato do header `Origin`.
-  - `DB_SSL_CA` é o caminho do arquivo da CA; exige `DB_SSL=true`, e arquivo ausente ou vazio é erro fatal no boot.
+    - `process.env` é lido apenas em `env.ts`; todo o código consome o objeto `env` validado.
+    - Origens de CORS (`URL_WEB` e `URL_EXPO`, opcional) normalizadas para o formato do header `Origin`.
+    - `DB_SSL_CA` é o caminho do arquivo da CA; exige `DB_SSL=true`, e arquivo ausente ou vazio é erro fatal no boot.
 - Criação e conexão do banco PostgreSQL via Sequelize, com SSL opcional (`rejectUnauthorized: true`; CA opcional) (dockerizado no compose do `vita-api`).
 - Conexão Redis com factory, `mainClient` e `retryStrategy` (dockerizado no compose do `vita-api`).
 - CORS restrito às origens configuradas. Requisições sem `Origin` (apps mobile, ferramentas de teste) são aceitas.
 - Tratamento de erros:
-  - `AppError` com `detail` opcional e `cause` (erro original, usado apenas em log).
-  - Tradução de erros 4xx de bibliotecas no formato `http-errors` (ex.: JSON malformado, corpo muito grande) em `AppError` (`mapHttpError`).
-  - Handler 404 para rotas inexistentes, no formato padrão de erro.
-  - `error.middleware` com respostas montadas campo a campo (nenhum objeto de erro é serializado). Erros esperados são logados em uma linha, sem o objeto (o body da requisição pode conter senha); bugs são logados com stack, método e URL.
-  - Erros fatais no boot.
+    - `AppError` com `detail` opcional e `cause` (erro original, usado apenas em log).
+    - Tradução de erros 4xx de bibliotecas no formato `http-errors` (ex.: JSON malformado, corpo muito grande) em `AppError` (`mapHttpError`).
+    - Handler 404 para rotas inexistentes, no formato padrão de erro.
+    - `error.middleware` com respostas montadas campo a campo (nenhum objeto de erro é serializado). Erros esperados são logados em uma linha, sem o objeto (o body da requisição pode conter senha); bugs são logados com stack, método e URL.
+    - Erros fatais no boot.
 - Contratos HTTP tipados: `SuccessResponse`, `ErrorResponse` e a união `ApiResponse`. `AppResponse` envia apenas respostas de sucesso (status 200, 201 e 202).
 - Configuração do Multer baseada em políticas e middleware de upload (1–4 imagens, formatos aceitos, limite de 5 MB, campo `images`).
 - Rota de health-check.
