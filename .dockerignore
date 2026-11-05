@@ -10,9 +10,11 @@ dist
 # dados de runtime
 storage
 
-# versionamento, editor e documentação
+# versionamento, hooks, CI, editor e documentação
 .git
 .gitignore
+.github
+.husky
 .vscode
 *.md
 
