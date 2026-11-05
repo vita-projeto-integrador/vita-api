@@ -1,0 +1,47 @@
+import connection from '../../shared/config/sequelize.config.js'
+import storage from '../../shared/config/storage.config.js'
+import { getMainClient } from '../../shared/database/init-redis.js'
+import { withTimeout } from '../../shared/utils/with-timeout.js'
+import { getDbErrorMessage } from '../../shared/errors/db-error.js'
+
+class HealthService {
+    public async checkDatabase(): Promise<boolean> {
+        try {
+            await withTimeout(connection.authenticate(), 2000)
+            return true
+        } catch (error) {
+            console.error(`>> [Postgres] ${getDbErrorMessage(error)}`)
+            return false
+        }
+    }
+    public async checkRedis(): Promise<boolean> {
+        try {
+            const mainClient = getMainClient()
+
+            // cliente geral não existe ainda
+            if (!mainClient) return false
+
+            // cliente geral não conectado
+            if (mainClient?.status !== 'ready') return false
+
+            // confirma com comando PING
+            const reply = await withTimeout(mainClient.ping(), 1000) // evita PING pendurado por config padrão do IORedis
+            return reply === 'PONG'
+        } catch (error: unknown) {
+            console.error(`[Redis] Erro inesperado ao conectar Redis: ${error}`)
+            return false
+        }
+    }
+    public async checkStorage(): Promise<boolean> {
+        try {
+            // grava e apaga um arquivo de teste
+            await withTimeout(storage.healthCheck(), 2000)
+            return true
+        } catch (error) {
+            console.error(`>> [Storage] ${error}`)
+            return false
+        }
+    }
+}
+
+export default new HealthService()
