@@ -38,8 +38,8 @@ const LocationSchema = z
 // metadados
 const MetaSchema = z
     .object({
-        capturadaEm: z
-            .iso.datetime({ offset: true }).nullable(), // null na galeria
+        capturada_em: z
+            .iso.datetime({ offset: true, error: 'capturada_em deve ser data ISO com fuso ou null' }).nullable(), // null na galeria
         localizacao: LocationSchema.nullable() // null na galeria ou sem GPS
     })
 
@@ -52,7 +52,7 @@ const MetadataSchema = z.preprocess(
             try {
                 return JSON.parse(texto)
             } catch {
-                ctx.issues.push({ code: 'custom', message: 'metadados não é um JSON válido', input: texto })
+                ctx.issues.push({ code: 'custom', message: 'metadata não é um JSON válido', input: texto })
                 return z.NEVER
             }
         })
@@ -65,7 +65,14 @@ const MetadataSchema = z.preprocess(
     Validações para operações
 ======================================
 */
-const CreateAnalysisBodySchema = z.object({ metadados: MetadataSchema })
+const CreateAnalysisBodySchema = z.strictObject(
+    { metadata: MetadataSchema },
+    {
+        error: (issue) => issue.code === 'unrecognized_keys'
+            ? `Campo não reconhecido: ${issue.keys.join(', ')}`
+            : undefined
+    }
+)
 
 const AnalysisIdParamsSchema = z.uuid('ID inválido')
 

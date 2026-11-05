@@ -24,6 +24,7 @@ interface PaginatedData<T> {
     total: number
     page: number
     limit: number
+    total_pages: number
 }
 
 export interface FieldError {

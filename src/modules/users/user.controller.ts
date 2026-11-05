@@ -36,7 +36,7 @@ class UserController {
 
         const token = generateToken({ id, email, nome, perfil })
 
-        const result = { user, token }
+        const result = { usuario: user, token }
 
         return AppResponse.send(res, 201, 'Login realizado com sucesso', result)
     }

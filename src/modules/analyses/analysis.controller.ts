@@ -26,7 +26,7 @@ class AnalysisController {
 
         const result = await AnalysisService.create(userId, files, data)
 
-        const message = result.queued
+        const message = result.enfileirada
             ? 'Análise iniciada'
             : 'Análise salva; o processamento começa quando a fila estiver disponível'
 

@@ -14,6 +14,7 @@ import type { MulterFile } from '../../shared/types/multer.types.js'
 import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO, MapQueryDTO, MetadadoDTO } from './dtos/analysis.dto.js'
 import type { FileFormat } from '../../shared/config/formats.config.js'
 import { toFileUrl } from '../../shared/storage/file-url.js'
+import type { PaginatedData } from '../../shared/types/http.types.js'
 
 /*
 ======================================
@@ -41,9 +42,10 @@ class AnalysisService {
         const analysisId = randomUUID()
 
         // sem metadados (web/galeria) -> sem localização
-        const metadados: MetadadoDTO[] = data.metadados ?? files.map(() => ({ capturadaEm: null, localizacao: null }))
+        const metadados: MetadadoDTO[] = data.metadata ?? files.map(() => ({ capturada_em: null, localizacao: null }))
+
         if (metadados.length !== files.length) {
-            throw new AppError(400, 'Envie um item de metadados por imagem, na mesma ordem')
+            throw new AppError(400, 'Envie um item de metadata por imagem, na mesma ordem')
         }
 
         // local da análise: a foto com menor erro de GPS (ou null)
@@ -92,7 +94,7 @@ class AnalysisService {
                         ? toPonto(metadado.localizacao.latitude, metadado.localizacao.longitude)
                         : null,
                     precisao: metadado.localizacao ? metadado.localizacao.precisao : null,
-                    capturada_em: metadado.capturadaEm ? new Date(metadado.capturadaEm) : null
+                    capturada_em: metadado.capturada_em ? new Date(metadado.capturada_em) : null
                 })), transaction)
             })
         } catch (error) {
@@ -103,9 +105,9 @@ class AnalysisService {
         }
 
         // enfileira; se Redis estiver offline faz requeue
-        const queued = await enqueueAnalysis(analysisId)
+        const enfileirada = await enqueueAnalysis(analysisId)
 
-        return { id: analysisId, status: 'em_espera' as const, queued }
+        return { id: analysisId, status: 'em_espera' as const, enfileirada }
     }
 
     async list(userId: string, query: ListAnalysesQueryDTO) {
@@ -150,8 +152,8 @@ class AnalysisService {
             page,
             limit,
             total: count,
-            totalPages: Math.ceil(count / limit)
-        }
+            total_pages: Math.ceil(count / limit)
+        } satisfies PaginatedData<(typeof items)[number]>
     }
 
     async getDetails(userId: string, analysisId: string) {
@@ -233,26 +235,29 @@ class AnalysisService {
             distinct: true // conta análises, não linhas do JOIN
         })
 
+        // flatMap: devolve [] para pular a linha (o where já garante a localização)
+        const items = rows.flatMap((analysis) => {
+            const localizacao = toLocalizacao(analysis.coordenadas, analysis.precisao)
+            if (!localizacao) return []
+            return [{
+                id: analysis.id,
+                status: analysis.status,
+                classe: analysis.classificacao?.classe ?? null,
+                confianca: analysis.classificacao?.confianca ?? null,
+                criado_em: analysis.createdAt,
+                latitude: localizacao.latitude,
+                longitude: localizacao.longitude,
+                precisao: localizacao.precisao
+            }]
+        })
+
         return {
-            // flatMap: devolve [] para pular a linha (o where já garante a localização)
-            items: rows.flatMap((analysis) => {
-                const localizacao = toLocalizacao(analysis.coordenadas, analysis.precisao)
-                if (!localizacao) return []
-                return [{
-                    id: analysis.id,
-                    status: analysis.status,
-                    classe: analysis.classificacao?.classe ?? null,
-                    confianca: analysis.classificacao?.confianca ?? null,
-                    createdAt: analysis.createdAt, // nome do contrato comum com a API JS
-                    latitude: localizacao.latitude,
-                    longitude: localizacao.longitude,
-                    precisao: localizacao.precisao
-                }]
-            }),
+            items,
             total: count,
             page: 1,
-            limit: MAP_LIMIT
-        }
+            limit: MAP_LIMIT,
+            total_pages: Math.ceil(count / MAP_LIMIT)
+        } satisfies PaginatedData<(typeof items)[number]>
     }
 }
 

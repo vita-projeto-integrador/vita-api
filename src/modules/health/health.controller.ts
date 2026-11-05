@@ -5,7 +5,7 @@ import HealthService from './health.service.js'
 class HealthController {
     public async healthCheck(req: Request, res: Response, next: NextFunction) {
         try {
-            const mysql: boolean = await HealthService.checkDatabase()
+            const postgres: boolean = await HealthService.checkDatabase()
             const redis: boolean = await HealthService.checkRedis()
             const storage: boolean = await HealthService.checkStorage()
 
@@ -15,7 +15,7 @@ class HealthController {
                 uptime: process.uptime(),
                 timestamp: new Date().toISOString(),
                 services: {
-                    mysql,
+                    postgres,
                     redis,
                     storage
                 }

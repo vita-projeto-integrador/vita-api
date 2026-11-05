@@ -20,4 +20,4 @@ export type ListAnalysesQueryDTO = z.infer<typeof ListAnalysesQuerySchema>
 
 export type MapQueryDTO = z.infer<typeof MapQuerySchema>
 
-export type MetadadoDTO = NonNullable<CreateAnalysisBodyDTO['metadados']>[number]
+export type MetadadoDTO = NonNullable<CreateAnalysisBodyDTO['metadata']>[number]
