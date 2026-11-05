@@ -1,69 +1,77 @@
-# Orquestração do ambiente de desenvolvimento do VITA
-# Obs.: a chave "version:" é obsoleta na Compose Specification e foi omitida de propósito.
+# Ambiente de desenvolvimento do VITA
+# A chave "version:" é obsoleta na Compose Specification e foi omitida.
 
 name: vita
 
 services:
 
   # ------------------------------------------------------------------
-  # API Node/Express
+  # API Node/Express (TypeScript)
   # ------------------------------------------------------------------
   api:
     build:
       context: .
-      target: development          # estágio do Dockerfile (development | production)
-    init: true                     # PID 1 = tini: repassa sinais (SIGTERM) e recolhe processos zumbis
+      target: development             # development | production
+    init: true                        # PID 1 = tini: repassa SIGTERM e recolhe zumbis
     env_file:
-      - .env                       # variáveis da aplicação (JWT, NODE_ENV, etc.)
+      - .env
     environment:
-      # Sobrescrevem o .env (environment > env_file).
-      # Dentro da rede do Compose, os hosts são os NOMES DOS SERVIÇOS, não "localhost".
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root                # ver observação no serviço mysql
+      # sobrescrevem o .env: dentro da rede, os hosts são os NOMES dos serviços
+      DB_HOST: postgres
+      DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
+      STORAGE_ROOT: /app/storage
     ports:
       - "${API_HOST_PORT:-8080}:8080"
     volumes:
-      - ./:/usr/src/app            # bind mount: código do host refletido no container (hot reload)
-      - /usr/src/app/node_modules  # volume anônimo: impede que o node_modules do host (Windows) sobrescreva o do container (Linux)
+      - storage_data:/app/storage     # imagens das análises e fotos de perfil
     depends_on:
-      mysql:
-        condition: service_healthy # initDatabase() encerra o processo se o MySQL não responder
+      postgres:
+        condition: service_healthy    # initDatabase() encerra o processo se o banco não responder
       redis:
         condition: service_healthy
+    develop:
+      watch:
+        - action: sync                # copia src/ para o container; o tsx watch reinicia
+          path: ./src
+          target: /app/src
+        - action: rebuild             # dependências mudaram: refaz a imagem
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 30s
+    stop_grace_period: 30s            # tempo para o worker terminar o job ativo
     restart: unless-stopped
 
   # ------------------------------------------------------------------
-  # MySQL
+  # Postgres + PostGIS
   # ------------------------------------------------------------------
-  mysql:
-    image: mysql:8.4               # 8.4 = linha LTS atual (8.0 já saiu de suporte)
+  postgres:
+    image: postgis/postgis:17-3.5
     environment:
-      # A API se conecta como root porque é ela quem executa CREATE DATABASE.
-      # MYSQL_DATABASE NÃO é definido de propósito: se o banco já existir,
-      # initDatabase() não recebe o erro 1049 e syncTables() nunca roda.
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env (a imagem do MySQL exige senha de root)}
+      # na primeira inicialização, cria o banco e roda CREATE EXTENSION postgis nele
+      POSTGRES_DB: ${DB_NAME:?Defina DB_NAME no .env}
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
     ports:
-      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"   # 3307 no host evita conflito com Laragon/XAMPP
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # só na máquina local, nunca na rede
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       # -h 127.0.0.1 força TCP: durante a inicialização o servidor temporário
-      # roda sem rede, então o check só passa quando o MySQL está realmente pronto.
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
-      interval: 10s
-      timeout: 5s
+      # só escuta no socket local, então o check só passa quando o banco está pronto de verdade
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
       retries: 10
-      start_period: 30s
+      start_period: 20s
     restart: unless-stopped
 
   # ------------------------------------------------------------------
@@ -74,11 +82,11 @@ services:
     command:
       - redis-server
       - --appendonly
-      - "yes"                      # persistência AOF: jobs sobrevivem a reinícios
+      - "yes"                         # persistência AOF: jobs sobrevivem a reinícios
       - --maxmemory-policy
-      - noeviction                 # exigido pelo BullMQ: Redis nunca descarta chaves de jobs
+      - noeviction                    # exigido pelo BullMQ: o Redis nunca descarta chaves de jobs
     ports:
-      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"   # 6380 no host evita conflito com o Redis do WSL
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -88,6 +96,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ------------------------------------------------------------------
+  # pgAdmin (opcional): docker compose --profile tools up -d
+  # ------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles: [tools]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@vita.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
+  pgadmin_data:
+  storage_data:

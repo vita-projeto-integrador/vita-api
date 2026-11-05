@@ -3,38 +3,63 @@
 ARG NODE_VERSION=24
 
 # ---------------------------------------------------------------
-# base: camada comum aos dois ambientes
+# base: Node + pnpm (via Corepack) + manifestos
 # slim (Debian/glibc) em vez de alpine (musl): menos atrito com
-# dependências nativas como sharp e bcrypt.
+# dependências nativas como sharp e bcrypt
 # ---------------------------------------------------------------
 FROM node:${NODE_VERSION}-bookworm-slim AS base
-WORKDIR /usr/src/app
-# Copiar só os manifestos primeiro aproveita o cache de camadas:
-# o npm install só reexecuta quando as dependências mudam.
-COPY package*.json ./
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+WORKDIR /app
+# só os manifestos: o install só reexecuta quando as dependências mudam
+COPY package.json pnpm-lock.yaml ./
 
 # ---------------------------------------------------------------
-# development: usado pelo docker-compose.yml (código via bind mount)
+# deps: todas as dependências (inclusive dev: tsc, tsx, @types)
 # ---------------------------------------------------------------
-FROM base AS development
+FROM base AS deps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ---------------------------------------------------------------
+# development: usado pelo compose (código sincronizado pelo watch)
+# ---------------------------------------------------------------
+FROM deps AS development
 ENV NODE_ENV=development
-RUN npm install
 COPY . .
 EXPOSE 8080
-# --legacy-watch (polling): eventos de arquivo do Windows/WSL
-# não chegam ao container via bind mount.
-CMD ["npx", "nodemon", "--legacy-watch", "server.js"]
+# binário direto, sem "pnpm dev": o sinal de parada chega ao processo certo
+CMD ["./node_modules/.bin/tsx", "watch", "src/server.ts"]
 
 # ---------------------------------------------------------------
-# production: imagem enxuta, sem devDependencies, usuário não-root
+# build: compila TypeScript para dist/
 # ---------------------------------------------------------------
-FROM base AS production
+FROM deps AS build
+COPY . .
+RUN pnpm build
+
+# ---------------------------------------------------------------
+# prod-deps: só as dependências de produção
+# ---------------------------------------------------------------
+FROM base AS prod-deps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile
+
+# ---------------------------------------------------------------
+# production: Node puro + dist + node_modules de produção
+# ---------------------------------------------------------------
+FROM node:${NODE_VERSION}-bookworm-slim AS production
 ENV NODE_ENV=production
-# npm ci exige package-lock.json versionado no repositório.
-RUN npm ci --omit=dev && npm cache clean --force
-COPY --chown=node:node . .
-RUN mkdir -p storage && chown -R node:node storage
+WORKDIR /app
+# package.json é obrigatório: é ele que diz "type": "module" ao Node
+COPY --chown=node:node package.json ./
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+# a pasta precisa existir com dono node antes do volume ser montado
+RUN mkdir -p storage && chown node:node storage
 USER node
 EXPOSE 8080
-# node direto (sem npm start): o npm não repassa SIGTERM corretamente.
-CMD ["node", "server.js"]
+# node direto: o pnpm não repassa SIGTERM corretamente
+CMD ["node", "dist/server.js"]

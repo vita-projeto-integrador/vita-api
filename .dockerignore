@@ -1,15 +1,23 @@
-# Nunca enviar ao contexto de build
+# dependências e build locais (o container gera os próprios)
 node_modules
-npm-debug.log*
-.env
-.git
-.gitignore
+dist
 
-# Dados de runtime (imagens do storage)
+# segredos: nenhum .env entra na imagem
+.env
+.env.*
+!.env.example
+
+# dados de runtime
 storage
 
-# Documentação e arquivos do Docker
+# versionamento, editor e documentação
+.git
+.gitignore
+.vscode
 *.md
+
+# arquivos do próprio Docker
 Dockerfile
+compose*.yaml
 docker-compose*.yml
 .dockerignore

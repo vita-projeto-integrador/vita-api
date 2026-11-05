@@ -1,0 +1,117 @@
+import {
+    DataTypes,
+    Model,
+    literal,
+    type CreationOptional,
+    type InferAttributes,
+    type InferCreationAttributes,
+    type NonAttribute
+} from 'sequelize'
+import connection from '../config/sequelize.config.js'
+import type { Analise } from './analise.model.js'
+import type { Processada } from './processada.model.js'
+import type { Ponto } from '../types/model.types.js'
+import { ALL_FILE_FORMATS, type FileFormat, type Timestamps } from './enums.js'
+
+export class Imagem extends Model<
+    InferAttributes<Imagem, { omit: Timestamps }>,
+    InferCreationAttributes<Imagem, { omit: Timestamps }>
+> {
+    declare id: CreationOptional<string>
+    declare id_analise: string
+    declare nome: string | null
+    declare caminho: string
+    declare coordenadas: CreationOptional<Ponto | null>
+    declare tipo_mime: FileFormat
+    declare tamanho: number
+    declare precisao: CreationOptional<number | null>
+    declare capturada_em: CreationOptional<Date | null>
+    declare createdAt: Date
+    declare updatedAt: Date
+    declare deletedAt: Date | null
+
+    // associações (preenchidas só quando usadas no include)
+    declare analise?: NonAttribute<Analise>
+    declare processadas?: NonAttribute<Processada[]>
+}
+
+Imagem.init(
+    {
+        id: {
+            type: DataTypes.UUID,
+            primaryKey: true,
+            defaultValue: literal('gen_random_uuid()')
+        },
+        id_analise: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'analises',
+                key: 'id'
+            },
+            onDelete: 'RESTRICT'
+        },
+        nome: {
+            type: DataTypes.STRING(150),
+            allowNull: true
+        },
+        caminho: {
+            type: DataTypes.STRING(2048),
+            allowNull: false
+        },
+        coordenadas: {
+            // SRID 4326 = WGS 84, o sistema do GPS
+            type: DataTypes.GEOGRAPHY('POINT', 4326)
+        },
+        tipo_mime: {
+            type: DataTypes.ENUM(...ALL_FILE_FORMATS),
+            allowNull: false
+        },
+        tamanho: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            validate: {
+                min: 1
+            }
+        },
+        precisao: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+            validate: { min: 0 }
+        },
+        capturada_em: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+    },
+    {
+        sequelize: connection,
+        modelName: 'Imagem',
+        tableName: 'imagens',
+        timestamps: true,
+        paranoid: true,
+        validate: {
+            // coordenadas e precisão andam juntas (o banco não tem CHECK)
+            localizacaoCompleta(this: Imagem) {
+                if ((this.coordenadas == null) !== (this.precisao == null)) {
+                    throw new Error('coordenadas e precisao devem ser informadas juntas')
+                }
+            }
+        },
+        indexes: [
+            {
+                // índice único de otimização
+                name: 'imagens_id_analise_idx',
+                fields: ['id_analise']
+            },
+            {
+                // índice único  otimização para tipo POSTGIS
+                name: 'imagens_coordenadas_gix',
+                fields: ['coordenadas'],
+                using: 'GIST'
+            }
+        ]
+    }
+)
+
+export default Imagem
