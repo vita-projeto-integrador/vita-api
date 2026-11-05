@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq'
-import type { Redis, RedisOptions } from 'ioredis'
+import type { Redis } from 'ioredis'
 import { createRedisConnection } from '../../../shared/config/redis.config.js'
 import { Analise } from '../../../shared/models/index.model.js'
 
