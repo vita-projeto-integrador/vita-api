@@ -1,6 +1,6 @@
 # CONTRIBUTING.MD
 
-Segue o fluxo atual de desenvolvimento: 
+Segue o fluxo atual de desenvolvimento:
 
 ```mermaid
 gitGraph
