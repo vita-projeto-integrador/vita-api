@@ -5,7 +5,7 @@ import {
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
-    type NonAttribute
+    type NonAttribute,
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Imagem } from './imagem.model.js'
@@ -34,37 +34,37 @@ Processada.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: literal('gen_random_uuid()')
+            defaultValue: literal('gen_random_uuid()'),
         },
         id_imagem: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: 'imagens',
-                key: 'id'
+                key: 'id',
             },
-            onDelete: 'RESTRICT'
+            onDelete: 'RESTRICT',
         },
         nome: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
         },
         caminho: {
             type: DataTypes.STRING(2048),
-            allowNull: false
+            allowNull: false,
         },
         tipo_mime: {
             type: DataTypes.ENUM(...ALL_FILE_FORMATS),
             defaultValue: 'webp',
-            allowNull: false
+            allowNull: false,
         },
         tamanho: {
             type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
-                min: 1
-            }
-        }
+                min: 1,
+            },
+        },
     },
     {
         sequelize: connection,
@@ -76,10 +76,10 @@ Processada.init(
             {
                 // índice único de otimização
                 name: 'processadas_id_imagem_idx',
-                fields: ['id_imagem']
-            }
-        ]
-    }
+                fields: ['id_imagem'],
+            },
+        ],
+    },
 )
 
 export default Processada

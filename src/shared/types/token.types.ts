@@ -1,4 +1,4 @@
-import type { UserProfile } from '../models/enums.js';
+import type { UserProfile } from '../models/enums.js'
 
 /**
  * Dados do usuário autenticado

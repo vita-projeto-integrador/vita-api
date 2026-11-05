@@ -51,7 +51,7 @@ class AnalysisService {
         // local da análise: a foto com menor erro de GPS (ou null)
         const location = pickAnalysisLocation(metadados.map((item) => item.localizacao))
 
-        const images: { id: string, file: MulterFile, format: string, key: string, metadado: MetadadoDTO }[] = []
+        const images: { id: string; file: MulterFile; format: string; key: string; metadado: MetadadoDTO }[] = []
 
         // confere conteúdo real e insere em images[]
         for (const [index, file] of files.entries()) {
@@ -66,7 +66,7 @@ class AnalysisService {
                 file,
                 format: declared,
                 key: analysisImageKey(userId, analysisId, id, 'original', declared),
-                metadado: metadados[index] // mesma posição do arquivo
+                metadado: metadados[index], // mesma posição do arquivo
             })
         }
 
@@ -76,31 +76,41 @@ class AnalysisService {
                 await storage.save(image.key, image.file.buffer)
             }
             await connection.transaction(async (transaction) => {
-                await Analise.create({
-                    id: analysisId,
-                    id_usuario: userId,
-                    coordenadas: location ? toPonto(location.latitude, location.longitude) : null,
-                    precisao: location ? location.precisao : null
-                }, { transaction })
-                await ImageService.createMany(images.map(({ id, file, key, metadado }) => ({
-                    id,
-                    id_analise: analysisId,
-                    nome: file.originalname.slice(0, 150), // STRING(150)
-                    caminho: key,
-                    tipo_mime: mimeToFormat(file.mimetype) as FileFormat,
-                    tamanho: file.size,
-                    // localização e horário da foto (null na galeria ou sem GPS)
-                    coordenadas: metadado.localizacao
-                        ? toPonto(metadado.localizacao.latitude, metadado.localizacao.longitude)
-                        : null,
-                    precisao: metadado.localizacao ? metadado.localizacao.precisao : null,
-                    capturada_em: metadado.capturada_em ? new Date(metadado.capturada_em) : null
-                })), transaction)
+                await Analise.create(
+                    {
+                        id: analysisId,
+                        id_usuario: userId,
+                        coordenadas: location ? toPonto(location.latitude, location.longitude) : null,
+                        precisao: location ? location.precisao : null,
+                    },
+                    { transaction },
+                )
+                await ImageService.createMany(
+                    images.map(({ id, file, key, metadado }) => ({
+                        id,
+                        id_analise: analysisId,
+                        nome: file.originalname.slice(0, 150), // STRING(150)
+                        caminho: key,
+                        tipo_mime: mimeToFormat(file.mimetype) as FileFormat,
+                        tamanho: file.size,
+                        // localização e horário da foto (null na galeria ou sem GPS)
+                        coordenadas: metadado.localizacao
+                            ? toPonto(metadado.localizacao.latitude, metadado.localizacao.longitude)
+                            : null,
+                        precisao: metadado.localizacao ? metadado.localizacao.precisao : null,
+                        capturada_em: metadado.capturada_em ? new Date(metadado.capturada_em) : null,
+                    })),
+                    transaction,
+                )
             })
         } catch (error) {
-            await Promise.all(images.map((image) => storage.delete(image.key).catch((cleanupError) => {
-                console.error('>> [Storage] Falha ao remover arquivo órfão:', image.key, cleanupError)
-            })))
+            await Promise.all(
+                images.map((image) =>
+                    storage.delete(image.key).catch((cleanupError) => {
+                        console.error('>> [Storage] Falha ao remover arquivo órfão:', image.key, cleanupError)
+                    }),
+                ),
+            )
             throw error
         }
 
@@ -116,43 +126,44 @@ class AnalysisService {
         const { rows, count } = await Analise.findAndCountAll({
             where: {
                 id_usuario: userId,
-                ...(from && to ? { createdAt: { [Op.between]: [from, to] } } : {})
+                ...(from && to ? { createdAt: { [Op.between]: [from, to] } } : {}),
             },
             attributes: [
                 'id',
                 'status',
                 'createdAt',
                 [literal(IMAGES_COUNT_SQL), 'total_imagens'],
-                [literal(THUMBNAIL_SQL), 'miniatura']
+                [literal(THUMBNAIL_SQL), 'miniatura'],
             ],
             include: [{ model: Classificacao, as: 'classificacao', attributes: ['classe', 'confianca'] }],
             order: [['createdAt', 'DESC']],
             limit,
-            offset: (page - 1) * limit
+            offset: (page - 1) * limit,
         })
 
-
         // URLs assinadas são assíncronas (no R2, cada uma é gerada pelo SDK)
-        const items = await Promise.all(rows.map(async (analysis) => {
-            const thumbnail = analysis.get('miniatura')
-            return {
-                id: analysis.id,
-                status: analysis.status,
-                criado_em: analysis.createdAt,
-                total_imagens: Number(analysis.get('total_imagens')),
-                miniatura: typeof thumbnail === 'string' ? await toFileUrl(thumbnail) : null,
-                classificacao: analysis.classificacao
-                    ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
-                    : null
-            }
-        }))
+        const items = await Promise.all(
+            rows.map(async (analysis) => {
+                const thumbnail = analysis.get('miniatura')
+                return {
+                    id: analysis.id,
+                    status: analysis.status,
+                    criado_em: analysis.createdAt,
+                    total_imagens: Number(analysis.get('total_imagens')),
+                    miniatura: typeof thumbnail === 'string' ? await toFileUrl(thumbnail) : null,
+                    classificacao: analysis.classificacao
+                        ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
+                        : null,
+                }
+            }),
+        )
 
         return {
             items,
             page,
             limit,
             total: count,
-            total_pages: Math.ceil(count / limit)
+            total_pages: Math.ceil(count / limit),
         } satisfies PaginatedData<(typeof items)[number]>
     }
 
@@ -164,11 +175,11 @@ class AnalysisService {
                     model: Imagem,
                     as: 'imagens',
                     attributes: ['id', 'nome', 'caminho', 'tipo_mime', 'tamanho'],
-                    include: [{ model: Processada, as: 'processadas', attributes: ['caminho'] }]
+                    include: [{ model: Processada, as: 'processadas', attributes: ['caminho'] }],
                 },
-                { model: Classificacao, as: 'classificacao' }
+                { model: Classificacao, as: 'classificacao' },
             ],
-            order: [[{ model: Imagem, as: 'imagens' }, 'createdAt', 'ASC']]
+            order: [[{ model: Imagem, as: 'imagens' }, 'createdAt', 'ASC']],
         })
 
         if (!analysis) throw new AppError(404, 'Análise não encontrada')
@@ -178,18 +189,18 @@ class AnalysisService {
             status: analysis.status,
             localizacao: toLocalizacao(analysis.coordenadas, analysis.precisao),
             criado_em: analysis.createdAt,
-            imagens: await Promise.all((analysis.imagens ?? []).map(async (imagem) => ({
-                id: imagem.id,
-                nome: imagem.nome,
-                // caminho: imagem.caminho,
-                url: await storage.getUrl(imagem.caminho),
-                tipo_mime: imagem.tipo_mime,
-                tamanho: imagem.tamanho,
-                processada: await toFileUrl(imagem.processadas?.[0]?.caminho)
-            }))),
-            classificacao: analysis.classificacao
-                ? ClassificationService.toResponse(analysis.classificacao)
-                : null
+            imagens: await Promise.all(
+                (analysis.imagens ?? []).map(async (imagem) => ({
+                    id: imagem.id,
+                    nome: imagem.nome,
+                    // caminho: imagem.caminho,
+                    url: await storage.getUrl(imagem.caminho),
+                    tipo_mime: imagem.tipo_mime,
+                    tamanho: imagem.tamanho,
+                    processada: await toFileUrl(imagem.processadas?.[0]?.caminho),
+                })),
+            ),
+            classificacao: analysis.classificacao ? ClassificationService.toResponse(analysis.classificacao) : null,
         }
     }
 
@@ -197,7 +208,7 @@ class AnalysisService {
         const analysis = await Analise.findOne({
             where: { id: analysisId, id_usuario: userId },
             attributes: ['id', 'status'],
-            include: [{ model: Classificacao, as: 'classificacao', attributes: ['classe', 'confianca'] }]
+            include: [{ model: Classificacao, as: 'classificacao', attributes: ['classe', 'confianca'] }],
         })
 
         if (!analysis) throw new AppError(404, 'Análise não encontrada')
@@ -207,7 +218,7 @@ class AnalysisService {
             status: analysis.status,
             classificacao: analysis.classificacao
                 ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
-                : null
+                : null,
         }
     }
 
@@ -220,35 +231,39 @@ class AnalysisService {
                 coordenadas: { [Op.ne]: null }, // só análises com localização
                 precisao: { [Op.ne]: null },
                 ...(from && to ? { createdAt: { [Op.between]: [from, to] } } : {}),
-                ...(status ? { status: { [Op.in]: status } } : {})
+                ...(status ? { status: { [Op.in]: status } } : {}),
             },
             attributes: ['id', 'status', 'createdAt', 'coordenadas', 'precisao'],
-            include: [{
-                model: Classificacao,
-                as: 'classificacao',
-                attributes: ['classe', 'confianca'],
-                // com where, o include vira INNER JOIN: só análises com essa classe
-                ...(classe ? { where: { classe } } : {})
-            }],
+            include: [
+                {
+                    model: Classificacao,
+                    as: 'classificacao',
+                    attributes: ['classe', 'confianca'],
+                    // com where, o include vira INNER JOIN: só análises com essa classe
+                    ...(classe ? { where: { classe } } : {}),
+                },
+            ],
             order: [['createdAt', 'DESC']],
             limit: MAP_LIMIT,
-            distinct: true // conta análises, não linhas do JOIN
+            distinct: true, // conta análises, não linhas do JOIN
         })
 
         // flatMap: devolve [] para pular a linha (o where já garante a localização)
         const items = rows.flatMap((analysis) => {
             const localizacao = toLocalizacao(analysis.coordenadas, analysis.precisao)
             if (!localizacao) return []
-            return [{
-                id: analysis.id,
-                status: analysis.status,
-                classe: analysis.classificacao?.classe ?? null,
-                confianca: analysis.classificacao?.confianca ?? null,
-                criado_em: analysis.createdAt,
-                latitude: localizacao.latitude,
-                longitude: localizacao.longitude,
-                precisao: localizacao.precisao
-            }]
+            return [
+                {
+                    id: analysis.id,
+                    status: analysis.status,
+                    classe: analysis.classificacao?.classe ?? null,
+                    confianca: analysis.classificacao?.confianca ?? null,
+                    criado_em: analysis.createdAt,
+                    latitude: localizacao.latitude,
+                    longitude: localizacao.longitude,
+                    precisao: localizacao.precisao,
+                },
+            ]
         })
 
         return {
@@ -256,7 +271,7 @@ class AnalysisService {
             total: count,
             page: 1,
             limit: MAP_LIMIT,
-            total_pages: Math.ceil(count / MAP_LIMIT)
+            total_pages: Math.ceil(count / MAP_LIMIT),
         } satisfies PaginatedData<(typeof items)[number]>
     }
 }

@@ -17,8 +17,8 @@ class HealthController {
                 services: {
                     postgres,
                     redis,
-                    storage
-                }
+                    storage,
+                },
             })
         } catch (error: unknown) {
             next(error)

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { emptyToNull, emptyToUndefined } from '../utils/indefinite.js';
+import { z } from 'zod'
+import { emptyToNull, emptyToUndefined } from '../utils/indefinite.js'
 
 /*
     Campos opcionais de formulário
@@ -8,9 +8,7 @@ import { emptyToNull, emptyToUndefined } from '../utils/indefinite.js';
 */
 
 // cadastro: campo vazio = não informado (o banco grava null)
-export const optionalField = <T extends z.ZodType>(schema: T) =>
-    z.preprocess(emptyToUndefined, schema.nullish())
+export const optionalField = <T extends z.ZodType>(schema: T) => z.preprocess(emptyToUndefined, schema.nullish())
 
 // atualização: campo vazio = apagar o valor (grava null)
-export const clearableField = <T extends z.ZodType>(schema: T) =>
-    z.preprocess(emptyToNull, schema.nullable())
+export const clearableField = <T extends z.ZodType>(schema: T) => z.preprocess(emptyToNull, schema.nullable())

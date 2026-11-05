@@ -5,7 +5,7 @@ import {
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
-    type NonAttribute
+    type NonAttribute,
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
@@ -40,48 +40,48 @@ Imagem.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: literal('gen_random_uuid()')
+            defaultValue: literal('gen_random_uuid()'),
         },
         id_analise: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: 'analises',
-                key: 'id'
+                key: 'id',
             },
-            onDelete: 'RESTRICT'
+            onDelete: 'RESTRICT',
         },
         nome: {
             type: DataTypes.STRING(150),
-            allowNull: true
+            allowNull: true,
         },
         caminho: {
             type: DataTypes.STRING(2048),
-            allowNull: false
+            allowNull: false,
         },
         coordenadas: {
             // SRID 4326 = WGS 84, o sistema do GPS
-            type: DataTypes.GEOGRAPHY('POINT', 4326)
+            type: DataTypes.GEOGRAPHY('POINT', 4326),
         },
         tipo_mime: {
             type: DataTypes.ENUM(...ALL_FILE_FORMATS),
-            allowNull: false
+            allowNull: false,
         },
         tamanho: {
             type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
-                min: 1
-            }
+                min: 1,
+            },
         },
         precisao: {
             type: DataTypes.DOUBLE,
             allowNull: true,
-            validate: { min: 0 }
+            validate: { min: 0 },
         },
         capturada_em: {
             type: DataTypes.DATE,
-            allowNull: true
+            allowNull: true,
         },
     },
     {
@@ -96,22 +96,22 @@ Imagem.init(
                 if ((this.coordenadas == null) !== (this.precisao == null)) {
                     throw new Error('coordenadas e precisao devem ser informadas juntas')
                 }
-            }
+            },
         },
         indexes: [
             {
                 // índice único de otimização
                 name: 'imagens_id_analise_idx',
-                fields: ['id_analise']
+                fields: ['id_analise'],
             },
             {
                 // índice único  otimização para tipo POSTGIS
                 name: 'imagens_coordenadas_gix',
                 fields: ['coordenadas'],
-                using: 'GIST'
-            }
-        ]
-    }
+                using: 'GIST',
+            },
+        ],
+    },
 )
 
 export default Imagem

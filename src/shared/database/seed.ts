@@ -19,7 +19,7 @@ async function main() {
                     email: 'produtor@vita.dev',
                     senha_hash,
                     perfil: 'produtor',
-                    cnpj: '00000000000100'
+                    cnpj: '00000000000100',
                 },
                 {
                     nome: 'Estudante Exemplo',
@@ -27,15 +27,15 @@ async function main() {
                     senha_hash,
                     perfil: 'estudante',
                     faculdade: 'Fatec',
-                    curso: 'DSM'
-                }
+                    curso: 'DSM',
+                },
             ],
-            { validate: true, transaction }
+            { validate: true, transaction },
         )
 
         const analise = await Analise.create(
             { id_usuario: produtor.id, status: 'finalizada', coordenadas, precisao: 4.8 },
-            { transaction }
+            { transaction },
         )
 
         const imagem = await Imagem.create(
@@ -49,12 +49,12 @@ async function main() {
                 coordenadas: {
                     type: 'Point',
                     coordinates: [-47.3331, -21.6806],
-                    crs: { type: 'name', properties: { name: 'EPSG:4326' } }
+                    crs: { type: 'name', properties: { name: 'EPSG:4326' } },
                 },
                 precisao: 4.8,
-                capturada_em: new Date()
+                capturada_em: new Date(),
             },
-            { transaction }
+            { transaction },
         )
 
         await Processada.create(
@@ -63,9 +63,9 @@ async function main() {
                 nome: 'folha-01-processada.png',
                 caminho: 'uploads/processadas/folha-01-processada.png',
                 tipo_mime: 'png',
-                tamanho: 198_400
+                tamanho: 198_400,
             },
-            { transaction }
+            { transaction },
         )
 
         await Classificacao.create(
@@ -75,9 +75,9 @@ async function main() {
                 confianca: 0.93,
                 modelo_cnn: 'vita-cnn',
                 versao_modelo: '1.0.0',
-                tempo_execucao: 840
+                tempo_execucao: 840,
             },
-            { transaction }
+            { transaction },
         )
     })
 

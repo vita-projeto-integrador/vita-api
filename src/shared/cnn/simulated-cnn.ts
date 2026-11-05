@@ -6,10 +6,10 @@ import type { CnnClassifier, CnnPrediction } from '../types/cnn.types.js'
 // parâmetros da simulação num lugar só
 const SIMULATION = {
     size: 224,
-    darkLuminance: 60,    // abaixo disso o pixel conta como possível lesão
+    darkLuminance: 60, // abaixo disso o pixel conta como possível lesão
     saturationDensity: 2, // 2% de pixels escuros = probabilidade 1
-    threshold: 0.8,       // score >= limiar → infectado
-    delayMs: 5000         // latência artificial de uma inferência real
+    threshold: 0.8, // score >= limiar → infectado
+    delayMs: 5000, // latência artificial de uma inferência real
 } as const
 
 const WHITE = { r: 255, g: 255, b: 255 }
@@ -23,7 +23,7 @@ function augment(buffer: Buffer): Sharp[] {
         base(),
         base().flip(),
         base().modulate({ hue: 10, brightness: 0.9 }),
-        base().rotate(45, { background: WHITE }) // cantos brancos, não pretos
+        base().rotate(45, { background: WHITE }), // cantos brancos, não pretos
     ]
 }
 
@@ -39,11 +39,13 @@ function darkRatio(data: Buffer, channels: number): number {
 
 // score de uma imagem = média das variações (ensemble averaging)
 async function scoreImage(buffer: Buffer): Promise<number> {
-    const scores = await Promise.all(augment(buffer).map(async (variation) => {
-        const { data, info } = await toRgbPixels(variation)
-        const densityPercent = darkRatio(data, info.channels) * 100
-        return Math.min(densityPercent / SIMULATION.saturationDensity, 1)
-    }))
+    const scores = await Promise.all(
+        augment(buffer).map(async (variation) => {
+            const { data, info } = await toRgbPixels(variation)
+            const densityPercent = darkRatio(data, info.channels) * 100
+            return Math.min(densityPercent / SIMULATION.saturationDensity, 1)
+        }),
+    )
     return mean(scores)
 }
 
@@ -64,7 +66,7 @@ class SimulatedCnn implements CnnClassifier {
             classe: infectado ? 'infectado' : 'saudavel',
             confianca: infectado ? score : 1 - score, // probabilidade complementar
             modelo: 'simulacao-sharp',
-            versao: '1.0.0'
+            versao: '1.0.0',
         }
     }
 }

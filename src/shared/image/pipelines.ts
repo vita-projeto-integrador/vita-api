@@ -15,7 +15,7 @@ export async function detectFormat(buffer: Buffer): Promise<string | undefined> 
 // base comum: orientação EXIF, sem transparência, sRGB
 export function normalize(buffer: Buffer): Sharp {
     return sharp(buffer)
-        .rotate()                       // aplica a orientação EXIF (fotos de celular)
+        .rotate() // aplica a orientação EXIF (fotos de celular)
         .flatten({ background: WHITE }) // transparência vira branco, não preto
         .toColorspace('srgb')
 }
@@ -24,7 +24,7 @@ export function normalize(buffer: Buffer): Sharp {
 export async function preprocess(buffer: Buffer): Promise<Buffer> {
     return normalize(buffer)
         .resize(CNN_SIZE, CNN_SIZE, { fit: 'cover', position: 'center' })
-        .blur(0.5)                                       // reduz ruído
+        .blur(0.5) // reduz ruído
         .modulate({ brightness: 1.05, saturation: 1.2 }) // contraste e cor
         .webp({ quality: 90 })
         .toBuffer()
@@ -32,9 +32,5 @@ export async function preprocess(buffer: Buffer): Promise<Buffer> {
 
 // pixels crus, sem alpha (o chamador usa info.channels, nunca 3 fixo)
 export async function toRgbPixels(image: Sharp) {
-    return image
-        .removeAlpha()
-        .toColorspace('srgb')
-        .raw()
-        .toBuffer({ resolveWithObject: true })
+    return image.removeAlpha().toColorspace('srgb').raw().toBuffer({ resolveWithObject: true })
 }

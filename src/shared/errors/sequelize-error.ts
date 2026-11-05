@@ -3,7 +3,7 @@ import {
     ConnectionError,
     ForeignKeyConstraintError,
     UniqueConstraintError,
-    ValidationError
+    ValidationError,
 } from 'sequelize'
 import AppError from './app-error.js'
 
@@ -15,7 +15,7 @@ export function mapSequelizeError(err: unknown): AppError | undefined {
         const field = Object.keys(err.fields ?? {})
         return new AppError(409, 'Registro já existente', {
             errors: field.map((field) => ({ field, message: `${field} já está em uso` })),
-            cause: err
+            cause: err,
         })
     }
 
@@ -26,7 +26,7 @@ export function mapSequelizeError(err: unknown): AppError | undefined {
     if (err instanceof ValidationError) {
         return new AppError(400, 'Dados inválidos', {
             errors: err.errors.map((item) => ({ field: item.path, message: item.message })),
-            cause: err
+            cause: err,
         })
     }
 

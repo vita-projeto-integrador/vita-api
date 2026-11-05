@@ -54,7 +54,7 @@ async function startServer(): Promise<void> {
         // promise rejeitada
         process.on('unhandledRejection', (reason: unknown) => {
             console.error('>> [Node] Rejeição não tratada:', reason)
-            process.exit(1);
+            process.exit(1)
         })
 
         // ctrl+c, encerramento de container/processo
@@ -64,12 +64,11 @@ async function startServer(): Promise<void> {
                 console.log('>> [Node] Servidor encerrado corretamente')
                 await stopJobs()
                 await closeDatabase()
-                process.exit(0);
+                process.exit(0)
             })
         }
         process.on('SIGINT', () => gracefulShutdown('SIGINT')) // sinal do usuário
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM')) // sinal do sistema
-
     } catch (error) {
         console.error(`>> [Boot] Falha ao iniciar aplicação: ${error}`)
         process.exit(1)

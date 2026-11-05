@@ -10,8 +10,8 @@ const analysisPolicy: UploadPolicyConfig = {
     formats: ['png', 'webp', 'jpeg'],
     limits: {
         fileSize: 5 * MB,
-        files: 4
-    }
+        files: 4,
+    },
 }
 
 const profilePhotoPolicy: UploadPolicyConfig = {
@@ -20,8 +20,8 @@ const profilePhotoPolicy: UploadPolicyConfig = {
     formats: ['png', 'webp', 'jpeg'],
     limits: {
         fileSize: 5 * MB,
-        files: 1
-    }
+        files: 1,
+    },
 }
 
 export { analysisPolicy, profilePhotoPolicy }

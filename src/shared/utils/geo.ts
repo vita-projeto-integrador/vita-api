@@ -14,7 +14,7 @@ export function toPonto(latitude: number, longitude: number): Ponto {
     return {
         type: 'Point',
         coordinates: [longitude, latitude], // GeoJSON: longitude primeiro
-        crs: { type: 'name', properties: { name: 'EPSG:4326' } }
+        crs: { type: 'name', properties: { name: 'EPSG:4326' } },
     }
 }
 
@@ -34,7 +34,7 @@ export function toLocalizacao(ponto: Ponto | null, precisao: number | null): Loc
 // local da análise: a leitura com menor erro, desde que até MAX_PRECISAO
 export function pickAnalysisLocation(locations: (Localizacao | null)[]): Localizacao | null {
     const valid = locations.filter(
-        (location): location is Localizacao => location !== null && location.precisao <= MAX_PRECISAO
+        (location): location is Localizacao => location !== null && location.precisao <= MAX_PRECISAO,
     )
     if (valid.length === 0) return null
     return valid.reduce((best, location) => (location.precisao < best.precisao ? location : best))

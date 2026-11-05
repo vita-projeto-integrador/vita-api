@@ -1,6 +1,5 @@
-import type { ErrorDetail } from "../types/http.types.js"
+import type { ErrorDetail } from '../types/http.types.js'
 import type { FieldError } from '../types/http.types.js'
-
 
 interface AppErrorOptions {
     detail?: ErrorDetail

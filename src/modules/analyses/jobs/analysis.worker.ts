@@ -10,7 +10,7 @@ export function startAnalysisWorker(): Worker<AnalysisJobData> {
 
     worker = new Worker<AnalysisJobData>(ANALYSIS_QUEUE, processAnalysis, {
         connection: createRedisConnection({ connectionName: 'analysis-worker', maxRetriesPerRequest: null }),
-        concurrency: 1 // Sharp + simulação são CPU-bound
+        concurrency: 1, // Sharp + simulação são CPU-bound
     })
 
     worker.on('active', (job) => {
@@ -27,7 +27,9 @@ export function startAnalysisWorker(): Worker<AnalysisJobData> {
 
         // 'failed' dispara a cada tentativa; só a última encerra a análise
         const isFinal = error instanceof UnrecoverableError || job.attemptsMade >= (job.opts.attempts ?? 1)
-        console.error(`>> [BullMQ] Análise ${analysisId} falhou (tentativa ${job.attemptsMade}${isFinal ? ', final' : ''}): ${error.message}`)
+        console.error(
+            `>> [BullMQ] Análise ${analysisId} falhou (tentativa ${job.attemptsMade}${isFinal ? ', final' : ''}): ${error.message}`,
+        )
 
         if (isFinal) void markAsFailed(analysisId) // markAsFailed nunca lança
     })

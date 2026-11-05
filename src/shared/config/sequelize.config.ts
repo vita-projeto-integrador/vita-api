@@ -14,17 +14,15 @@ const sequelizeOptions: Options = {
         max: 10,
         min: 0,
         acquire: 30000,
-        idle: 10000
+        idle: 10000,
     },
     // opções comuns de todas as models
     define: {
         timestamps: true,
         underscored: true,
-        paranoid: true
+        paranoid: true,
     },
-    dialectOptions: db.ssl
-        ? { ssl: { rejectUnauthorized: true, ca: db.sslCa } }
-        : {}
+    dialectOptions: db.ssl ? { ssl: { rejectUnauthorized: true, ca: db.sslCa } } : {},
 }
 
 // instancia cliente
@@ -34,7 +32,7 @@ const connection = new Sequelize(
     db.user,
     db.password,
     // parâmetros customizáveis
-    sequelizeOptions
+    sequelizeOptions,
 )
 
 export default connection

@@ -1,12 +1,7 @@
 import type { Request, Response } from 'express'
 import AppError from '../../shared/errors/app-error.js'
 import UserService from './user.service.js'
-import type {
-    SignUpBodyDTO,
-    LoginBodyDTO,
-    UpdateMeBodyDTO,
-    UserIdParamsDTO
-} from './dtos/user.dto.js'
+import type { SignUpBodyDTO, LoginBodyDTO, UpdateMeBodyDTO, UserIdParamsDTO } from './dtos/user.dto.js'
 import type { MulterFile } from '../../shared/types/multer.types.js'
 import { generateToken } from '../../shared/utils/jwt.js'
 import { validate } from 'uuid'
@@ -79,7 +74,7 @@ class UserController {
         }
 
         const result = await UserService.updatePhoto(id, file)
-        
+
         return AppResponse.send(res, 200, 'Foto de perfil atualizada com sucesso', result)
     }
 

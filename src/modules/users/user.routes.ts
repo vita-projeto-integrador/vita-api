@@ -1,10 +1,6 @@
 import express from 'express'
-import UserController from "./user.controller.js"
-import {
-    SignUpBodySchema,
-    LoginBodySchema,
-    UpdateMeBodySchema
-} from './schemas/user.schema.js'
+import UserController from './user.controller.js'
+import { SignUpBodySchema, LoginBodySchema, UpdateMeBodySchema } from './schemas/user.schema.js'
 import { validateBody } from '../../shared/middlewares/validate.middlware.js'
 import { authenticate } from '../../shared/middlewares/auth.middleware.js'
 import { createMulterHandler } from '../../shared/middlewares/upload.middleware.js'

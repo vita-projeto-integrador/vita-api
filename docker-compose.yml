@@ -4,15 +4,14 @@
 name: vita
 
 services:
-
   # ------------------------------------------------------------------
   # API Node/Express (TypeScript)
   # ------------------------------------------------------------------
   api:
     build:
       context: .
-      target: development             # development | production
-    init: true                        # PID 1 = tini: repassa SIGTERM e recolhe zumbis
+      target: development # development | production
+    init: true # PID 1 = tini: repassa SIGTERM e recolhe zumbis
     env_file:
       - .env
     environment:
@@ -24,30 +23,36 @@ services:
       PORT: 8080
       STORAGE_ROOT: /app/storage
     ports:
-      - "${API_HOST_PORT:-8080}:8080"
+      - '${API_HOST_PORT:-8080}:8080'
     volumes:
-      - storage_data:/app/storage     # imagens das análises e fotos de perfil
+      - storage_data:/app/storage # imagens das análises e fotos de perfil
     depends_on:
       postgres:
-        condition: service_healthy    # initDatabase() encerra o processo se o banco não responder
+        condition: service_healthy # initDatabase() encerra o processo se o banco não responder
       redis:
         condition: service_healthy
     develop:
       watch:
-        - action: sync                # copia src/ para o container; o tsx watch reinicia
+        - action: sync # copia src/ para o container; o tsx watch reinicia
           path: ./src
           target: /app/src
-        - action: rebuild             # dependências mudaram: refaz a imagem
+        - action: rebuild # dependências mudaram: refaz a imagem
           path: package.json
         - action: rebuild
           path: pnpm-lock.yaml
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 30s
-    stop_grace_period: 30s            # tempo para o worker terminar o job ativo
+    stop_grace_period: 30s # tempo para o worker terminar o job ativo
     restart: unless-stopped
 
   # ------------------------------------------------------------------
@@ -61,13 +66,13 @@ services:
       POSTGRES_USER: ${DB_USER:?Defina DB_USER no .env}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
     ports:
-      - "127.0.0.1:${DB_PORT:-5432}:5432"   # só na máquina local, nunca na rede
+      - '127.0.0.1:${DB_PORT:-5432}:5432' # só na máquina local, nunca na rede
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       # -h 127.0.0.1 força TCP: durante a inicialização o servidor temporário
       # só escuta no socket local, então o check só passa quando o banco está pronto de verdade
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -82,15 +87,15 @@ services:
     command:
       - redis-server
       - --appendonly
-      - "yes"                         # persistência AOF: jobs sobrevivem a reinícios
+      - 'yes' # persistência AOF: jobs sobrevivem a reinícios
       - --maxmemory-policy
-      - noeviction                    # exigido pelo BullMQ: o Redis nunca descarta chaves de jobs
+      - noeviction # exigido pelo BullMQ: o Redis nunca descarta chaves de jobs
     ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -106,7 +111,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@vita.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     ports:
-      - "127.0.0.1:5050:80"
+      - '127.0.0.1:5050:80'
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:

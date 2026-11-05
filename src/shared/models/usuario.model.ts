@@ -5,7 +5,7 @@ import {
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
-    type NonAttribute
+    type NonAttribute,
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
@@ -41,56 +41,56 @@ Usuario.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: literal('gen_random_uuid()')
+            defaultValue: literal('gen_random_uuid()'),
         },
         nome: {
             type: DataTypes.STRING(150),
-            allowNull: false
+            allowNull: false,
         },
         email: {
             type: DataTypes.STRING(250),
             validate: { isLowercase: true },
-            allowNull: false
+            allowNull: false,
         },
         senha_hash: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
         },
         telefone: {
             type: DataTypes.STRING(15),
-            validate: { is: /^[0-9]{10,15}$/ }
+            validate: { is: /^[0-9]{10,15}$/ },
         },
         data_nascimento: {
-            type: DataTypes.DATEONLY
+            type: DataTypes.DATEONLY,
         },
         perfil: {
             type: DataTypes.ENUM(...USER_PROFILES),
             defaultValue: 'outro',
-            allowNull: false
+            allowNull: false,
         },
         endereco: {
-            type: DataTypes.STRING(255)
+            type: DataTypes.STRING(255),
         },
         cpf: {
             type: DataTypes.STRING(11),
             validate: { is: /^[0-9]{11}$/ },
-            allowNull: true
+            allowNull: true,
         },
         cnpj: {
             type: DataTypes.STRING(14),
             validate: { is: /^[0-9]{14}$/ },
-            allowNull: true
+            allowNull: true,
         },
         faculdade: {
-            type: DataTypes.STRING(150)
+            type: DataTypes.STRING(150),
         },
         curso: {
-            type: DataTypes.STRING(150)
+            type: DataTypes.STRING(150),
         },
         foto_perfil: {
             type: DataTypes.STRING(2048),
-            allowNull: true
-        }
+            allowNull: true,
+        },
     },
     {
         sequelize: connection,
@@ -105,10 +105,10 @@ Usuario.init(
                 name: 'usuarios_email_ativo_uq',
                 unique: true,
                 fields: ['email'],
-                where: { deleted_at: null }
-            }
-        ]
-    }
+                where: { deleted_at: null },
+            },
+        ],
+    },
 )
 
 export default Usuario

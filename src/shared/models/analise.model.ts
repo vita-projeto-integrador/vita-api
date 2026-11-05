@@ -5,7 +5,7 @@ import {
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
-    type NonAttribute
+    type NonAttribute,
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Usuario } from './usuario.model.js'
@@ -38,31 +38,31 @@ Analise.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: literal('gen_random_uuid()')
+            defaultValue: literal('gen_random_uuid()'),
         },
         id_usuario: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: 'usuarios',
-                key: 'id'
+                key: 'id',
             },
-            onDelete: 'RESTRICT'
+            onDelete: 'RESTRICT',
         },
         status: {
             type: DataTypes.ENUM(...ANALYSIS_STATUSES),
             defaultValue: 'em_espera',
-            allowNull: false
+            allowNull: false,
         },
         coordenadas: {
             type: DataTypes.GEOGRAPHY('POINT', 4326),
-            allowNull: true
+            allowNull: true,
         },
         precisao: {
             type: DataTypes.DOUBLE,
             allowNull: true,
-            validate: { min: 0 }
-        }
+            validate: { min: 0 },
+        },
     },
     {
         sequelize: connection,
@@ -75,22 +75,22 @@ Analise.init(
                 if ((this.coordenadas == null) !== (this.precisao == null)) {
                     throw new Error('coordenadas e precisao devem ser informadas juntas')
                 }
-            }
+            },
         },
         indexes: [
             {
                 // índice único de otimização
                 name: 'analises_id_usuario_idx',
-                fields: ['id_usuario']
+                fields: ['id_usuario'],
             },
             {
                 // índice único  otimização para tipo POSTGIS
                 name: 'analises_coordenadas_gix',
                 fields: ['coordenadas'],
-                using: 'GIST'
-            }
-        ]
-    }
+                using: 'GIST',
+            },
+        ],
+    },
 )
 
 export default Analise

@@ -3,7 +3,7 @@ import {
     CreateAnalysisBodySchema,
     AnalysisIdParamsSchema,
     ListAnalysesQuerySchema,
-    MapQuerySchema
+    MapQuerySchema,
 } from '../schemas/analysis.schema.js'
 
 /*

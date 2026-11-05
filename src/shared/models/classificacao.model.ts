@@ -5,7 +5,7 @@ import {
     type CreationOptional,
     type InferAttributes,
     type InferCreationAttributes,
-    type NonAttribute
+    type NonAttribute,
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Analise } from './analise.model.js'
@@ -35,39 +35,39 @@ Classificacao.init(
         id: {
             type: DataTypes.UUID,
             primaryKey: true,
-            defaultValue: literal('gen_random_uuid()')
+            defaultValue: literal('gen_random_uuid()'),
         },
         id_analise: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: 'analises',
-                key: 'id'
+                key: 'id',
             },
-            onDelete: 'RESTRICT'
+            onDelete: 'RESTRICT',
         },
         tempo_execucao: {
             type: DataTypes.INTEGER,
             validate: { min: 0 },
-            allowNull: false
+            allowNull: false,
         },
         classe: {
             type: DataTypes.ENUM(...CLASSIFICATION_CLASSES),
-            allowNull: false
+            allowNull: false,
         },
         confianca: {
             type: DataTypes.DOUBLE,
             validate: { min: 0, max: 1 },
-            allowNull: false
+            allowNull: false,
         },
         modelo_cnn: {
             type: DataTypes.STRING(150),
-            allowNull: false
+            allowNull: false,
         },
         versao_modelo: {
             type: DataTypes.STRING(50),
-            allowNull: false
-        }
+            allowNull: false,
+        },
     },
     {
         sequelize: connection,
@@ -81,15 +81,15 @@ Classificacao.init(
                 name: 'classificacoes_analise_ativa_uq',
                 unique: true,
                 fields: ['id_analise'],
-                where: { deleted_at: null }
+                where: { deleted_at: null },
             },
             {
                 // índice único de otimização
                 name: 'classificacoes_id_analise_idx',
                 fields: ['id_analise'],
-            }
-        ]
-    }
+            },
+        ],
+    },
 )
 
 export default Classificacao

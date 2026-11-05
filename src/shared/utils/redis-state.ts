@@ -1,4 +1,4 @@
-import { RedisStatus } from "ioredis"
+import { RedisStatus } from 'ioredis'
 
 let isRedisConnected: RedisStatus = 'wait'
 

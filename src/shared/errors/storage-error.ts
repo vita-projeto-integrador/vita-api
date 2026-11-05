@@ -1,11 +1,11 @@
-import AppError from "./app-error.js"
+import AppError from './app-error.js'
 
 // códigos de erro do storage
 export type StorageErrorCode =
-    | 'NOT_FOUND'      // key não existe
-    | 'INVALID_KEY'    // key fora do formato
-    | 'UNAVAILABLE'    // sem permissão, disco cheio, somente leitura
-    | 'FAILURE'        // outros erros de E/S (default)
+    | 'NOT_FOUND' // key não existe
+    | 'INVALID_KEY' // key fora do formato
+    | 'UNAVAILABLE' // sem permissão, disco cheio, somente leitura
+    | 'FAILURE' // outros erros de E/S (default)
 
 export interface StorageErrorOptions {
     key?: string // apenas pra log, nunca em resposta HTTP
@@ -13,7 +13,7 @@ export interface StorageErrorOptions {
 }
 
 interface StorageErrorInfo {
-    message: string,
+    message: string
     status: number
 }
 
@@ -34,20 +34,20 @@ export class StorageError extends Error {
 const STORAGE_ERRORS = {
     INVALID_KEY: {
         message: 'Erro interno ao acessar arquivo',
-        status: 500
+        status: 500,
     },
     NOT_FOUND: {
         message: 'Arquivo não encontrado no servidor',
-        status: 500
+        status: 500,
     },
     UNAVAILABLE: {
         message: 'Armazenamento de arquivos indisponível',
-        status: 503
+        status: 503,
     },
     FAILURE: {
         message: 'Erro interno ao acessar arquivo',
-        status: 500
-    }
+        status: 500,
+    },
 } as const satisfies Record<StorageErrorCode, StorageErrorInfo>
 
 // traduz StorageError em AppError

@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import path from 'node:path';
-import { deepFreeze } from '../utils/deep-freeze.js';
-import { HOUR, MINUTE } from '../utils/units.js';
-import { emptyToUndefined } from '../utils/indefinite.js';
+import { z } from 'zod'
+import path from 'node:path'
+import { deepFreeze } from '../utils/deep-freeze.js'
+import { HOUR, MINUTE } from '../utils/units.js'
+import { emptyToUndefined } from '../utils/indefinite.js'
 import fs from 'node:fs'
 
 // variáveis de ambiente originais
-const vars = process.env;
+const vars = process.env
 
 /*
     Schemas de validação
@@ -65,75 +65,72 @@ const NodeEnvironmentSchema = z.object({
 
 const JWTEnvironmentSchema = z.object({
     JWT_SECRET: z.string().min(32),
-    JWT_EXPIRES_IN: z.string().regex(/^\d+(s|m|h|d|w)$/, 'JWT_EXPIRES_IN inválido').default('1h'),
+    JWT_EXPIRES_IN: z
+        .string()
+        .regex(/^\d+(s|m|h|d|w)$/, 'JWT_EXPIRES_IN inválido')
+        .default('1h'),
 })
 
 // normaliza origem HTTP(S)
 // ex.: "http://localhost:3000/" -> "http://localhost:3000"
-const originSchema = z
-    .url({ protocol: /^https?$/ })
-    .transform((value) => new URL(value).origin)
+const originSchema = z.url({ protocol: /^https?$/ }).transform((value) => new URL(value).origin)
 
 const CORSEnvironmentSchema = z.object({
     URL_WEB: originSchema,
-    URL_EXPO: originSchema.optional()
+    URL_EXPO: originSchema.optional(),
 })
 
-const BaseUrlSchema = z
-    .url({ protocol: /^https?$/ })
-    .transform((value) => value.replace(/\/+$/, ''))
+const BaseUrlSchema = z.url({ protocol: /^https?$/ }).transform((value) => value.replace(/\/+$/, ''))
 
 const StorageEnvironmentSchema = z.object({
     STORAGE_DRIVER: z.enum(['local']).default('local'),
-    STORAGE_ROOT: z.string().min(1).transform(
-        (value) => path.resolve(value),
-    ),
+    STORAGE_ROOT: z
+        .string()
+        .min(1)
+        .transform((value) => path.resolve(value)),
     STORAGE_TMP_TTL_HOURS: z.coerce.number().positive().max(72).default(24),
     STORAGE_PUBLIC_URL: BaseUrlSchema.default('http://localhost:8080/api/files'),
     STORAGE_URL_SECRET: z.string().min(32),
-    STORAGE_URL_TTL_MINUTES: z.coerce.number().int().positive().max(1440).default(60)
+    STORAGE_URL_TTL_MINUTES: z.coerce.number().int().positive().max(1440).default(60),
 })
 
 // helper - transforma variáveis vazias em undefined para zod tratar
 const normalizeEnv = (env: NodeJS.ProcessEnv) =>
-    Object.fromEntries(
-        Object.entries(env).map(([key, value]) => [
-            key,
-            emptyToUndefined(value),
-        ]),
-    )
+    Object.fromEntries(Object.entries(env).map(([key, value]) => [key, emptyToUndefined(value)]))
 
-// helper - agrega todas as validações zod 
-const RawEnvSchema = z.object({
-    ...NodeEnvironmentSchema.shape,
-    ...DatabaseEnvironmentSchema.shape,
-    ...RedisEnvironmentSchema.shape,
-    ...JWTEnvironmentSchema.shape,
-    ...CORSEnvironmentSchema.shape,
-    ...StorageEnvironmentSchema.shape
-}).superRefine((e, ctx) => {
-    if (e.DB_SSL_CA && !e.DB_SSL) {
-        ctx.addIssue({
-            code: 'custom',
-            path: ['DB_SSL_CA'],
-            message: 'DB_SSL_CA informado com DB_SSL=false: o certificado seria ignorado',
-        })
-    }
-    // separação de chaves: vazar uma não compromete a outra
-    if (e.STORAGE_URL_SECRET === e.JWT_SECRET) {
-        ctx.addIssue({
-            code: 'custom',
-            path: ['STORAGE_URL_SECRET'],
-            message: 'STORAGE_URL_SECRET deve ser diferente de JWT_SECRET',
-        })
-    }
-})
+// helper - agrega todas as validações zod
+const RawEnvSchema = z
+    .object({
+        ...NodeEnvironmentSchema.shape,
+        ...DatabaseEnvironmentSchema.shape,
+        ...RedisEnvironmentSchema.shape,
+        ...JWTEnvironmentSchema.shape,
+        ...CORSEnvironmentSchema.shape,
+        ...StorageEnvironmentSchema.shape,
+    })
+    .superRefine((e, ctx) => {
+        if (e.DB_SSL_CA && !e.DB_SSL) {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['DB_SSL_CA'],
+                message: 'DB_SSL_CA informado com DB_SSL=false: o certificado seria ignorado',
+            })
+        }
+        // separação de chaves: vazar uma não compromete a outra
+        if (e.STORAGE_URL_SECRET === e.JWT_SECRET) {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['STORAGE_URL_SECRET'],
+                message: 'STORAGE_URL_SECRET deve ser diferente de JWT_SECRET',
+            })
+        }
+    })
 
 // helper - valida variáveis e classifica por tipo
-const EnvSchema = RawEnvSchema.transform(e => ({
+const EnvSchema = RawEnvSchema.transform((e) => ({
     app: {
         port: e.PORT,
-        nodeEnv: e.NODE_ENV
+        nodeEnv: e.NODE_ENV,
     },
     db: {
         name: e.DB_NAME,
@@ -150,15 +147,15 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         port: e.REDIS_PORT,
         user: e.REDIS_USERNAME,
         password: e.REDIS_PASSWORD,
-        db: e.REDIS_DB
+        db: e.REDIS_DB,
     },
     auth: {
         secret: e.JWT_SECRET,
-        expiresIn: e.JWT_EXPIRES_IN
+        expiresIn: e.JWT_EXPIRES_IN,
     },
     cors: {
         webUrl: e.URL_WEB,
-        expoUrl: e.URL_EXPO
+        expoUrl: e.URL_EXPO,
     },
     storage: {
         driver: e.STORAGE_DRIVER,
@@ -166,7 +163,7 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         tmpTtlMs: e.STORAGE_TMP_TTL_HOURS * HOUR,
         publicUrl: e.STORAGE_PUBLIC_URL,
         urlSecret: e.STORAGE_URL_SECRET,
-        urlTtlMs: e.STORAGE_URL_TTL_MINUTES * MINUTE
+        urlTtlMs: e.STORAGE_URL_TTL_MINUTES * MINUTE,
     },
 }))
 
@@ -179,4 +176,3 @@ if (!result.success) {
 // helper - congela (readonly) todos os campos do objeto final
 export const env = deepFreeze(result.data)
 export type Env = typeof env
-

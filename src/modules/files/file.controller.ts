@@ -19,7 +19,7 @@ class FileController {
             'Content-Type': file.mime,
             // private: só o navegador guarda; o cache vence junto com a URL
             'Cache-Control': `private, max-age=${file.maxAge}`,
-            'X-Content-Type-Options': 'nosniff'
+            'X-Content-Type-Options': 'nosniff',
         })
 
         // resposta binária: não usa AppResponse (o envelope é só para JSON)
