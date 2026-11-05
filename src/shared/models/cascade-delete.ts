@@ -1,5 +1,4 @@
 import type { Model, ModelStatic } from 'sequelize'
-import { AnyFunction } from 'sequelize/lib/utils'
 
 type AnyModel = ModelStatic<Model>
 

@@ -9,7 +9,6 @@ import {
 } from 'sequelize'
 import connection from '../config/sequelize.config.js'
 import type { Imagem } from './imagem.model.js'
-import type { Ponto } from '../types/model.types.js'
 import { ALL_FILE_FORMATS, type FileFormat, type Timestamps } from './enums.js'
 
 export class Processada extends Model<

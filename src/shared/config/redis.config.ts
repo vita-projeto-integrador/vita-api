@@ -1,4 +1,4 @@
-import { Redis, type RedisOptions } from 'ioredis'
+import { Redis } from 'ioredis'
 import RedisError from '../errors/redis-error.js'
 import { customConfigInterface } from '../types/redis.types.js'
 import { env } from './env.config.js'

@@ -1,8 +1,5 @@
 import { z } from 'zod';
 import { onlyDigits } from '../../../shared/schemas/only-digits.schema.js';
-import { MB } from '../../../shared/utils/units.js';
-import { profilePhotoPolicy } from '../../../shared/config/multer.config.js';
-import { formatToMime } from '../../../shared/config/formats.config.js';
 import { USER_PROFILES } from '../../../shared/models/enums.js'
 import { optionalField, clearableField } from '../../../shared/schemas/optional-field.schema.js'
 

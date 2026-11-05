@@ -20,7 +20,7 @@ export async function authenticate(
 
         try {
             payload = verifyToken(authHeader.split(' ')[1])
-        } catch (error) {
+        } catch {
             throw new AppError(401, 'Token inválido ou expirado')
         }
 
@@ -37,7 +37,7 @@ export async function authenticate(
         request.user = payload
 
         next()
-        
+
     } catch (error) {
         next(error);
     }

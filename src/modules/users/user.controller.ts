@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import AppError from '../../shared/errors/app-error.js'
 import UserService from './user.service.js'
 import type {
