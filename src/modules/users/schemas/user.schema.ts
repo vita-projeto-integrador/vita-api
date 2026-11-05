@@ -32,7 +32,8 @@ const PasswordSchema = z
     .string({
         error: 'Senha inválida'
     })
-    .min(8)
+    .min(8, 'Senha deve ter ao menos 8 caracteres')
+    .refine((val) => Buffer.byteLength(val) <= 72, 'Senha muito grande')
     .regex(/[A-Z]/, 'Senha deve ter ao menos uma letra maiúscula')
     .regex(/[a-z]/, 'Senha deve ter ao menos uma letra minúscula')
     .regex(/[0-9]/, 'Senha deve ter ao menos um número')
@@ -48,20 +49,8 @@ const PhoneSchema = onlyDigits
     .max(15, 'Telefone deve ter no máximo 15 dígitos')
 
 const BirthDateSchema = z
-    .string()
-    .min(1, "Data de nascimento é obrigatória")
-    .refine(val => /^\d{2}\/\d{2}\/\d{4}$/.test(val), "Formato Inválido")
-    .transform(val => {
-        const [dia, mes, ano] = val.split("/");
-        return `${ano}-${mes}-${dia}`; // Converte para formato ISO (AAAA-MM-DD)
-    })
-    .pipe(
-        z.string().refine(val => {
-            const date = new Date(val);
-            // Verifica se é uma data válida e se não é no futuro
-            return !isNaN(date.getTime()) && date <= new Date();
-        }, "Data inválida ou no futuro")
-    )
+    .iso.date('Data de nascimento inválida (use AAAA-MM-DD)')
+    .refine((val) => new Date(val) <= new Date(), 'Data de nascimento no futuro')
 
 /*  
     const CpfSchema = onlyDigits.length(11, 'CPF deve ter 11 dígitos')
@@ -107,7 +96,9 @@ const SignUpBodySchema = z.object({
 
 const LoginBodySchema = z.object({
     email: EmailSchema,
-    senha: PasswordSchema
+    senha: z
+        .string({ error: 'Senha inválida' })
+        .min(1, 'Senha é obrigatória')
 })
 
 const UpdateMeBodySchema = z.object({
