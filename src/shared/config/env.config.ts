@@ -166,7 +166,7 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         tmpTtlMs: e.STORAGE_TMP_TTL_HOURS * HOUR,
         publicUrl: e.STORAGE_PUBLIC_URL,
         urlSecret: e.STORAGE_URL_SECRET,
-        urlTtlMs: e.STORAGE_URL_TTL_MINUTES
+        urlTtlMs: e.STORAGE_URL_TTL_MINUTES * MINUTE
     },
 }))
 

@@ -5,13 +5,13 @@ import { env } from '../../shared/config/env.config.js'
 import { isValidSignature } from '../../shared/storage/signed-url.js'
 import { extToFormat, formatToMime } from '../../shared/config/formats.config.js'
 
-const { publicUrl } = env.storage
+const { urlSecret } = env.storage
 
 class FileService {
     // confere a URL assinada e abre o arquivo para envio
     async open(key: string, expires: number, signature: string) {
         // 1. assinatura antes de tudo: key ou expiração alteradas = URL inválida
-        if (!isValidSignature(key, expires, signature, publicUrl)) {
+        if (!isValidSignature(key, expires, signature, urlSecret)) {
             throw new AppError(403, 'URL de arquivo inválida')
         }
 
