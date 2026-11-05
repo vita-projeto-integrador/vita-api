@@ -6,10 +6,22 @@ import type { Readable } from 'node:stream'
 import type { StorageProvider } from '../types/storage.types.js'
 import { StorageError } from '../errors/storage-error.js'
 import { assertValidKey } from './keys.js'
+import { sign } from './signed-url.js'
+import { MINUTE } from '../utils/units.js'
 
 // códigos de erro do sistema
 const UNAVAILABLE_CODES = ['EACCES', 'EPERM', 'EROFS', 'ENOSPC', 'EDQUOT', 'EMFILE'] // storage inutilizável
 const MISSING_CODES = ['ENOENT', 'ENOTDIR'] // recurso não existe
+
+// arredonda expiração -> key igual gera url igual dentro da mesma janela, navegador aprovieta cache
+const URL_EXPIRY_STEP_MS = 5 * MINUTE
+
+// opções das URLs assinadas
+export interface LocalUrlOptions {
+    publicUrl: string
+    secret: string
+    ttlMs: number
+}
 
 /*
     Adaptador de storage em disco local
@@ -27,12 +39,14 @@ export class LocalStorageProvider implements StorageProvider {
     private readonly filesDir: string
     private readonly tmpDir: string
     private readonly tmpTtlMs: number
+    private readonly urlOptions: LocalUrlOptions
 
     // root já chega absoluto do .env
-    constructor(root: string, tmpTtlMs: number) {
+    constructor(root: string, tmpTtlMs: number, urlOptions: LocalUrlOptions) {
         this.filesDir = path.join(root, 'files')
         this.tmpDir = path.join(root, 'tmp')
         this.tmpTtlMs = tmpTtlMs
+        this.urlOptions = urlOptions
     }
 
     /*
@@ -79,7 +93,7 @@ export class LocalStorageProvider implements StorageProvider {
             await fs.rename(tmpPath, filePath) // troca atômica; sobrescreve se já existir
         } catch (error) {
             // remove o temporário; se falhar, cleanTmp apaga no próximo boot
-            await fs.rm(tmpPath, { force: true }).catch(() => {})
+            await fs.rm(tmpPath, { force: true }).catch(() => { })
             throw this.toStorageError(error, key)
         }
     }
@@ -142,6 +156,25 @@ export class LocalStorageProvider implements StorageProvider {
             keys.push(this.toKey(filePath))
         }
         return keys
+    }
+
+    /*
+        URLs
+    */
+    // URL temporária de leitura: <publicUrl>/<key>?expires=<unix>&signature=<hmac>
+    // não confere se o arquivo existe (a rota responde 404 se não existir)
+    async getUrl(key: string): Promise<string> {
+        assertValidKey(key)
+
+        const { publicUrl, secret, ttlMs } = this.urlOptions
+        const expiresMs = Math.ceil((Date.now() + ttlMs) / URL_EXPIRY_STEP_MS) * URL_EXPIRY_STEP_MS
+        const expires = expiresMs / 1000 // unix, em segundos
+
+        // key só tem [a-z0-9/._-]: não precisa de encode
+        const url = new URL(`${publicUrl}/${key}`)
+        url.searchParams.set('expires', String(expires))
+        url.searchParams.set('signature', sign(key, expires, secret))
+        return url.toString()
     }
 
     /*

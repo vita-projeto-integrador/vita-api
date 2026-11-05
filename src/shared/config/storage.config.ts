@@ -8,7 +8,11 @@ const { storage: storageEnv } = env
 function createStorage(): StorageProvider {
     switch (storageEnv.driver) {
         case 'local':
-            return new LocalStorageProvider(storageEnv.root, storageEnv.tmpTtlMs)
+            return new LocalStorageProvider(storageEnv.root, storageEnv.tmpTtlMs, {
+                publicUrl: storageEnv.publicUrl,
+                secret: storageEnv.urlSecret,
+                ttlMs: storageEnv.urlTtlMs
+            })
         default:
             throw new Error(`STORAGE_DRIVER desconhecido: ${storageEnv.driver}`)
     }

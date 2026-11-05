@@ -13,6 +13,7 @@ import type { MulterFile } from '../../shared/types/multer.types.js'
 import { mimeToFormat } from '../../shared/config/formats.config.js'
 import { detectFormat } from '../../shared/image/pipelines.js'
 import { profilePhotoKey } from '../../shared/storage/keys.js'
+import { toFileUrl } from '../../shared/storage/file-url.js'
 
 
 class UserService {
@@ -88,7 +89,7 @@ class UserService {
             cnpj: user.cnpj,
             faculdade: user.faculdade,
             curso: user.curso,
-            foto_perfil: user.foto_perfil,
+            foto_perfil: await toFileUrl(user.foto_perfil),
             criado_em: user.createdAt,
             alterado_em: user.updatedAt
         }
@@ -130,15 +131,13 @@ class UserService {
         if (!user) throw new AppError(404, 'Usuário não encontrado')
 
         const oldKey = user.foto_perfil
-        const newKey = profilePhotoKey(user.id, format)
+        // key nova a cada troca: a URL muda e o cache da foto antiga não é reaproveitado
+        const newKey = profilePhotoKey(user.id, randomUUID(), format)
 
-        // 3. grava (save atômico: tmp + rename; mesma key = sobrescrita)
+        // 3. grava (save atômico: tmp + rename)
         await storage.save(newKey, file.buffer)
 
-        // mesma extensão: a key não mudou e o banco já aponta para ela
-        if (newKey === oldKey) return { foto_perfil: newKey }
-
-        // 4. a extensão mudou: atualiza o banco; se falhar, remove só o arquivo novo
+        // 4. atualiza o banco; se falhar, remove só o arquivo novo
         try {
             await user.update({ foto_perfil: newKey })
         } catch (error) {
@@ -155,7 +154,7 @@ class UserService {
             })
         }
 
-        return { foto_perfil: newKey }
+        return { foto_perfil: await storage.getUrl(newKey) }
     }
 
     async delete(id: UserIdParamsDTO) {

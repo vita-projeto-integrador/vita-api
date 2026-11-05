@@ -43,4 +43,6 @@ export interface StorageProvider {
   delete(key: string): Promise<void>
   // apaga todos os arquivos de um prefixo (ex.: uma análise inteira)
   deleteByPrefix(prefix: string): Promise<void>
+  // gera URL temporária de leitura (local: assinada pela API; R2: presigned URL do bucket)
+  getUrl(key: string): Promise<string>
 }

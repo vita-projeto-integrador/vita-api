@@ -66,8 +66,9 @@ export function analysisImageKey(
 }
 
 // monta key completa para imagens de foto de perfil
-export function profilePhotoKey(userId: string, format: ImageFormat): string {
+export function profilePhotoKey(userId: string, photoId: string, format: ImageFormat): string {
     const user = checkId(userId, 'idUsuario')
+    const photo = checkId(photoId, 'idFoto')
     const ext = allowedImageFormats[format].ext
-    return `usuarios/${user}/foto-perfil.${ext}`
+    return `usuarios/${user}/foto-perfil-${photo}.${ext}`
 }

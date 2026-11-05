@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import path from 'node:path';
 import { deepFreeze } from '../utils/deep-freeze.js';
-import { HOUR } from '../utils/units.js';
+import { HOUR, MINUTE } from '../utils/units.js';
 import { emptyToUndefined } from '../utils/indefinite.js';
 import fs from 'node:fs'
 
@@ -79,12 +79,19 @@ const CORSEnvironmentSchema = z.object({
     URL_EXPO: originSchema.optional()
 })
 
+const BaseUrlSchema = z
+    .url({ protocol: /^https?$/ })
+    .transform((value) => value.replace(/\/+$/, ''))
+
 const StorageEnvironmentSchema = z.object({
     STORAGE_DRIVER: z.enum(['local']).default('local'),
     STORAGE_ROOT: z.string().min(1).transform(
         (value) => path.resolve(value),
     ),
     STORAGE_TMP_TTL_HOURS: z.coerce.number().positive().max(72).default(24),
+    STORAGE_PUBLIC_URL: BaseUrlSchema.default('http://localhost:8080/api/files'),
+    STORAGE_URL_SECRET: z.string().min(32),
+    STORAGE_URL_TTL_MINUTES: z.coerce.number().int().positive().max(1440).default(60)
 })
 
 // helper - transforma variáveis vazias em undefined para zod tratar
@@ -110,6 +117,14 @@ const RawEnvSchema = z.object({
             code: 'custom',
             path: ['DB_SSL_CA'],
             message: 'DB_SSL_CA informado com DB_SSL=false: o certificado seria ignorado',
+        })
+    }
+    // separação de chaves: vazar uma não compromete a outra
+    if (e.STORAGE_URL_SECRET === e.JWT_SECRET) {
+        ctx.addIssue({
+            code: 'custom',
+            path: ['STORAGE_URL_SECRET'],
+            message: 'STORAGE_URL_SECRET deve ser diferente de JWT_SECRET',
         })
     }
 })
@@ -149,6 +164,9 @@ const EnvSchema = RawEnvSchema.transform(e => ({
         driver: e.STORAGE_DRIVER,
         root: e.STORAGE_ROOT,
         tmpTtlMs: e.STORAGE_TMP_TTL_HOURS * HOUR,
+        publicUrl: e.STORAGE_PUBLIC_URL,
+        urlSecret: e.STORAGE_URL_SECRET,
+        urlTtlMs: e.STORAGE_URL_TTL_MINUTES
     },
 }))
 

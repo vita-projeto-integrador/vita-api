@@ -38,6 +38,15 @@ export function mimeToFormat(mime: string): ImageFormat | undefined {
     return entry ? (entry[0] as ImageFormat) : undefined
 }
 
+// conversor: extensão -> formato (ex.: 'jpg' -> 'jpeg')
+export function extToFormat(ext: string): ImageFormat | undefined {
+    const entry = Object.entries(allowedImageFormats).find(
+        ([, value]) => value.ext === ext.toLowerCase()
+    )
+
+    return entry ? (entry[0] as ImageFormat) : undefined
+}
+
 export const ALL_FILE_FORMATS = [...IMAGE_FORMATS, ...DOCUMENT_FORMATS]
 export type FileFormat = (typeof ALL_FILE_FORMATS)[number]
 

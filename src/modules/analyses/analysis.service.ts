@@ -13,6 +13,7 @@ import { enqueueAnalysis } from './jobs/analysis.queue.js'
 import type { MulterFile } from '../../shared/types/multer.types.js'
 import type { CreateAnalysisBodyDTO, ListAnalysesQueryDTO, MapQueryDTO, MetadadoDTO } from './dtos/analysis.dto.js'
 import type { FileFormat } from '../../shared/config/formats.config.js'
+import { toFileUrl } from '../../shared/storage/file-url.js'
 
 /*
 ======================================
@@ -128,20 +129,24 @@ class AnalysisService {
             offset: (page - 1) * limit
         })
 
+
+        // URLs assinadas são assíncronas (no R2, cada uma é gerada pelo SDK)
+        const items = await Promise.all(rows.map(async (analysis) => {
+            const thumbnail = analysis.get('miniatura')
+            return {
+                id: analysis.id,
+                status: analysis.status,
+                criado_em: analysis.createdAt,
+                total_imagens: Number(analysis.get('total_imagens')),
+                miniatura: typeof thumbnail === 'string' ? await toFileUrl(thumbnail) : null,
+                classificacao: analysis.classificacao
+                    ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
+                    : null
+            }
+        }))
+
         return {
-            items: rows.map((analysis) => {
-                const thumbnail = analysis.get('miniatura')
-                return {
-                    id: analysis.id,
-                    status: analysis.status,
-                    criado_em: analysis.createdAt,
-                    total_imagens: Number(analysis.get('total_imagens')),
-                    miniatura: typeof thumbnail === 'string' ? thumbnail : null,
-                    classificacao: analysis.classificacao
-                        ? { classe: analysis.classificacao.classe, confianca: analysis.classificacao.confianca }
-                        : null
-                }
-            }),
+            items,
             page,
             limit,
             total: count,
@@ -171,14 +176,15 @@ class AnalysisService {
             status: analysis.status,
             localizacao: toLocalizacao(analysis.coordenadas, analysis.precisao),
             criado_em: analysis.createdAt,
-            imagens: (analysis.imagens ?? []).map((imagem) => ({
+            imagens: await Promise.all((analysis.imagens ?? []).map(async (imagem) => ({
                 id: imagem.id,
                 nome: imagem.nome,
                 caminho: imagem.caminho,
+                url: await storage.getUrl(imagem.caminho),
                 tipo_mime: imagem.tipo_mime,
                 tamanho: imagem.tamanho,
-                processada: imagem.processadas?.[0]?.caminho ?? null
-            })),
+                processada: await toFileUrl(imagem.processadas?.[0]?.caminho)
+            }))),
             classificacao: analysis.classificacao
                 ? ClassificationService.toResponse(analysis.classificacao)
                 : null
