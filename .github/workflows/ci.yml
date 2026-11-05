@@ -1,0 +1,52 @@
+# Nome que aparece na aba Actions do GitHub
+name: CI
+
+# Quando rodar: a cada push, em qualquer branch
+on: push
+
+jobs:
+  validar:
+    name: Lint, tipos e build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código do repositório
+        uses: actions/checkout@v7
+
+      # sem "version": o pnpm é lido do campo packageManager do package.json
+      - name: Instalar o pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Instalar o Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Instalar as dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar o código (ESLint)
+        run: pnpm lint
+
+      - name: Verificar a formatação (Prettier)
+        run: pnpm format:check
+
+      - name: Verificar os tipos (tsc --noEmit)
+        run: pnpm type-check
+
+      - name: Compilar o projeto (build)
+        run: pnpm build
+
+  imagem:
+    name: Build da imagem Docker
+    # só roda se o job validar passar
+    needs: validar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código do repositório
+        uses: actions/checkout@v7
+
+      - name: Construir a imagem de produção
+        run: docker build --target production -t vita-api:ci .
