@@ -4,6 +4,7 @@ import { MB } from '../../../shared/utils/units.js';
 import { profilePhotoPolicy } from '../../../shared/config/multer.config.js';
 import { formatToMime } from '../../../shared/config/formats.config.js';
 import { USER_PROFILES } from '../../../shared/models/enums.js'
+import { optionalField, clearableField } from '../../../shared/schemas/optional-field.js'
 
 /*
 ======================================
@@ -41,6 +42,7 @@ const PasswordSchema = z
 
 const AddressSchema = z
     .string()
+    .trim()
     .min(1, "Endereço é obrigatório")
     .max(255, "Endereço muito grande")
 
@@ -63,16 +65,14 @@ const ProfileSchema = z
 
 const SchoolSchema = z
     .string()
+    .trim()
     .min(3, 'Nome da escola é muito pequeno')
     .max(100, "Nome da escola é muito grande")
-    .trim()
-    .or(z.literal(""))
 
 const CourseSchema = z
     .string()
-    .max(100, "Nome do curso é muito grande")
     .trim()
-    .or(z.literal(""))
+    .max(100, "Nome do curso é muito grande")
 
 /*
 ======================================
@@ -85,13 +85,13 @@ const SignUpBodySchema = z.object({
     nome: NameSchema,
     email: EmailSchema,
     senha: PasswordSchema,
-    telefone: PhoneSchema.nullish(),
-    endereco: AddressSchema.nullish(),
-    data_nascimento: BirthDateSchema.nullish(),
-    cnpj: CnpjSchema.nullish(),
+    telefone: optionalField(PhoneSchema),
+    endereco: optionalField(AddressSchema),
+    data_nascimento: optionalField(BirthDateSchema),
+    cnpj: optionalField(CnpjSchema),
     perfil: ProfileSchema.optional(),
-    faculdade: SchoolSchema.nullish(),
-    curso: CourseSchema.nullish(),
+    faculdade: optionalField(SchoolSchema),
+    curso: optionalField(CourseSchema),
 })
 
 const LoginBodySchema = z.object({
@@ -104,13 +104,13 @@ const LoginBodySchema = z.object({
 const UpdateMeBodySchema = z.object({
     nome: NameSchema,
     senha: PasswordSchema,
-    telefone: PhoneSchema,
-    endereco: AddressSchema.nullable(),
-    data_nascimento: BirthDateSchema.nullable(),
-    cnpj: CnpjSchema.nullable(),
+    telefone: clearableField(PhoneSchema),
+    endereco: clearableField(AddressSchema),
+    data_nascimento: clearableField(BirthDateSchema),
+    cnpj: clearableField(CnpjSchema),
     perfil: ProfileSchema.optional(),
-    faculdade: SchoolSchema.nullable(),
-    curso: CourseSchema.nullable(),
+    faculdade: clearableField(SchoolSchema),
+    curso: clearableField(CourseSchema),
 }).partial().refine((data) => Object.keys(data).length > 0, {
     message: 'Informe ao menos um campo para atualizar',
 });

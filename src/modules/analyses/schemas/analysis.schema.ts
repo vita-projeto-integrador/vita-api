@@ -74,7 +74,7 @@ const CreateAnalysisBodySchema = z.strictObject(
     }
 )
 
-const AnalysisIdParamsSchema = z.uuid('ID inválido')
+const AnalysisIdParamsSchema = z.object({ id: z.uuid('ID inválido') })
 
 const ListAnalysesQuerySchema = paginationSchema
     .extend(fromToSchema.shape)
