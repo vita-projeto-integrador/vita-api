@@ -14,7 +14,9 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /app
 # só os manifestos: o install só reexecuta quando as dependências mudam
-COPY package.json pnpm-lock.yaml ./
+# (Etapa 5) pnpm-workspace.yaml: guarda a política de build scripts (allowBuilds);
+# sem ele, o pnpm 11 encerra com ERR_PNPM_IGNORED_BUILDS
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # ---------------------------------------------------------------
 # deps: todas as dependências (inclusive dev: tsc, tsx, @types)
@@ -44,8 +46,10 @@ RUN pnpm build
 # prod-deps: só as dependências de produção
 # ---------------------------------------------------------------
 FROM base AS prod-deps
+# (Etapa 5) --ignore-scripts: o "prepare" chamaria o husky, que é devDependency
+# e não existe aqui; sharp e bcrypt usam binários pré-compilados
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --prod --frozen-lockfile
+    pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # ---------------------------------------------------------------
 # production: Node puro + dist + node_modules de produção
