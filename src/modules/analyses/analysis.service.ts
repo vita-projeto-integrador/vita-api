@@ -181,7 +181,7 @@ class AnalysisService {
             imagens: await Promise.all((analysis.imagens ?? []).map(async (imagem) => ({
                 id: imagem.id,
                 nome: imagem.nome,
-                caminho: imagem.caminho,
+                // caminho: imagem.caminho,
                 url: await storage.getUrl(imagem.caminho),
                 tipo_mime: imagem.tipo_mime,
                 tamanho: imagem.tamanho,

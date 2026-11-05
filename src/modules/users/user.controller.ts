@@ -22,7 +22,7 @@ class UserController {
 
         const token = generateToken({ id, email, nome, perfil })
 
-        const result = { user, token }
+        const result = { usuario: user, token }
 
         return AppResponse.send(res, 201, 'Usuário criado com sucesso', result)
     }
@@ -38,7 +38,7 @@ class UserController {
 
         const result = { usuario: user, token }
 
-        return AppResponse.send(res, 201, 'Login realizado com sucesso', result)
+        return AppResponse.send(res, 200, 'Login realizado com sucesso', result)
     }
 
     getMe = async (req: Request, res: Response) => {
@@ -67,7 +67,7 @@ class UserController {
 
         const user = await UserService.update(id, data)
 
-        return AppResponse.send(res, 201, 'Perfil atualizado com sucesso', user)
+        return AppResponse.send(res, 200, 'Perfil atualizado com sucesso', user)
     }
 
     updatePhoto = async (req: Request, res: Response) => {
